@@ -221,9 +221,9 @@ estrix-code/
 
 ## 交流群
 
-加入 Estrix Code 用户微信群，与其他用户交流使用经验：
+加入 Estrix Code 用户 QQ 群，与其他用户交流使用经验：
 
-![微信群](assets/wechat-group.jpg)
+![QQ群](QQGroup.jpg)
 
 > 群二维码约 7 天过期，如已失效请在 Issues 中提醒更新。
 
