@@ -92,12 +92,14 @@ function buildTabHandle(tab) {
 function computeViewBounds() {
   if (!shellWindow || shellWindow.isDestroyed()) return { x: 0, y: 0, width: 0, height: 0 };
   const [width, height] = shellWindow.getContentSize();
-  return {
+  const bounds = {
     x: 0,
     y: TAB_BAR_HEIGHT,
     width,
     height: Math.max(0, height - TAB_BAR_HEIGHT),
   };
+  console.log('[Tabs] computeViewBounds contentSize=' + width + 'x' + height + ' -> bounds=' + JSON.stringify(bounds));
+  return bounds;
 }
 
 /**

@@ -195,6 +195,52 @@ ipcMain.handle('tabs-create', async (_event, { profileId, providerId } = {}) => 
   return { success: true, tabId: tab.tabId };
 });
 
+// 点"+ 新建标签"：弹出原生菜单（原生层浮于 WebContentsView 之上），选择账号/新建
+ipcMain.handle('tabs-create-menu', async () => {
+  const { Menu } = require('electron');
+  const profiles = profileManager.readProfiles();
+  const { getAllProviders } = require('../providers');
+
+  const items = [];
+  for (const p of getAllProviders()) {
+    const accounts = profiles.filter(x => x.providerId === p.id);
+    if (accounts.length === 0) continue;
+    const last = profileManager.getLastProfileForProvider(p.id);
+    items.push({ label: p.name, enabled: false });
+    for (const a of accounts) {
+      const isLast = last && last.id === a.id;
+      items.push({
+        label: '  ' + a.name + (isLast ? '  (上次)' : ''),
+        click: () => {
+          profileManager.setLastProfileForProvider(p.id, a.id);
+          tabManager.createTab(a);
+        },
+      });
+    }
+    items.push({ type: 'separator' });
+  }
+  const unknown = profiles.filter(x => !x.providerId);
+  if (unknown.length > 0) {
+    items.push({ label: '未选平台', enabled: false });
+    for (const a of unknown) {
+      items.push({ label: '  ' + a.name, click: () => tabManager.createTab(a) });
+    }
+    items.push({ type: 'separator' });
+  }
+  items.push({
+    label: '＋ 新建账号',
+    click: () => {
+      const all = profileManager.readProfiles();
+      const profile = profileManager.createProfile('账号' + (all.length + 1), '');
+      tabManager.createTab(profile);
+    },
+  });
+
+  const win = tabManager.getShellWindow();
+  Menu.buildFromTemplate(items).popup({ window: win });
+  return { success: true };
+});
+
 // 账号列表（按平台分组 + 标记每平台上次使用的账号），供"+ 新建标签"选择
 ipcMain.handle('accounts-list', async () => {
   const profiles = profileManager.readProfiles();
