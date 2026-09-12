@@ -64,6 +64,14 @@ async function renderWindowList() {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const profileId = btn.dataset.profileId;
+        const nameEl = btn.closest('.estrix-window-item')?.querySelector('.estrix-window-name');
+        const name = nameEl ? nameEl.textContent : '该账号';
+        // 删除账号会清除其登录数据，不可恢复，先确认
+        const confirmed = await showConfirmDialog(
+          '确定删除「' + name + '」吗？\n\n该账号的登录状态与本地数据将被清除，且不可恢复。',
+          { okText: '删除', showCancel: true, cancelText: '取消' }
+        );
+        if (!confirmed) return;
         try {
           const r = await window.electronAPI.deleteProfileWindow(profileId);
           if (r && r.success) {

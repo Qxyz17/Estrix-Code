@@ -64,7 +64,9 @@ function registerIpcHandlers() {
     if (!trimmed) return { id, success: false, error: '命令为空' };
 
     const ctx = windowState.getContextByWebContents(event.sender);
-    const win = ctx ? ctx.win : windowState.getMainWindow();
+    const handle = ctx ? ctx.win : windowState.getMainWindow();
+    // dialog 的 parent 必须是原生 BrowserWindow，标签句柄用 _nativeWindow 兜底
+    const win = (handle && handle._nativeWindow) ? handle._nativeWindow : handle;
     const store = ctx ? ctx.sessionStore : null;
     const selectedDir = store ? store.state.selectedProjectDir : null;
 

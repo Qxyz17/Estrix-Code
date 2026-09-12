@@ -119,7 +119,7 @@ const OVERLAY_HTML = [
 '</div>',
 '<div id="estrix-status-badge" title="Estrix Code 运行中">',
 '  <span id="estrix-status-dot"></span>',
-'  <span class="estrix-fab-icon">C</span>',
+'  <span class="estrix-fab-icon">E</span>',
 '</div>',
 '<div id="estrix-first-time-dialog" class="estrix-first-time-dialog estrix-hidden">',
 '  <div class="estrix-first-time-box">',

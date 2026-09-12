@@ -1,20 +1,22 @@
 /**
- * Estrix Code 主进程入口（多窗口多 profile 版）
+ * Estrix Code 主进程入口（单窗口 + 标签页版）
  * 由项目根目录 main.js 薄壳加载。
+ *
+ * 架构：一个壳窗口（BrowserWindow）承载标签栏（shell.html），
+ * 每个标签是一个 WebContentsView，绑定独立 profile（平台+账号）与 partition，
+ * 登录态由 Electron 自动持久化，重启后复用。
  */
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const { app, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 const windowState = require('./window');
 const profileManager = require('./profile-manager');
-const { createSessionStore } = require('./session-store');
-const { getProvider } = require('../providers');
+const tabManager = require('./tab-manager');
+const { getProvider, getAllProviders } = require('../providers');
 const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
-// 使用 Electron 默认 userData 目录（%AppData%/Estrix-Code），
-// 所有窗口配置、账号 partition（cookies/session）均落在该目录下。
 console.log('[Estrix Code] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
@@ -23,7 +25,6 @@ const RENDERER_LOG_DIR = app.isPackaged
   : path.join(app.getPath('userData'), 'logs');
 if (RENDERER_LOG_DIR) {
   fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
-  // 开发环境每次启动清空平台日志，避免无限累积（与 start.js 清空 electron.log 一致）
   try {
     for (const f of fs.readdirSync(RENDERER_LOG_DIR)) {
       if (f.endsWith('.log')) fs.writeFileSync(path.join(RENDERER_LOG_DIR, f), '', 'utf-8');
@@ -35,131 +36,6 @@ if (RENDERER_LOG_DIR) {
 
 const { registerIpcHandlers } = require('./ipc');
 
-// 退出前需要 flush 的 sessions
-const sessionsToFlush = new Set();
-
-async function flushAllSessions() {
-  const promises = [];
-  for (const ses of sessionsToFlush) {
-    promises.push(ses.flushStorageData().catch(err => {
-      console.error('[Estrix Code] 刷新 session 失败:', err.message);
-    }));
-  }
-  await Promise.all(promises);
-  console.log('[Estrix Code] 全部 session 数据已刷新到磁盘');
-}
-
-/**
- * 创建窗口（绑定指定 profile）
- * @param {object|null} profile profile 对象，null 则使用默认 profile
- */
-function createWindow(profile) {
-  const profileData = profile || profileManager.getDefaultProfile();
-  const provider = getProvider(profileData.providerId || 'deepseek') || getProvider('deepseek');
-  const storeDir = app.getPath('userData');
-  const sessionStore = createSessionStore(profileData.id, storeDir, windowState);
-  const hasExplicitProfile = !!profile;
-  // providerId 已确定 → 直接打开；未确定 → 显示平台选择页
-  const providerChosen = !!profileData.providerId;
-
-  const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 900,
-    title: 'Estrix Code Pro - ' + provider.name + ' - ' + profileData.name,
-    webPreferences: {
-      preload: path.join(__dirname, '..', '..', 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      partition: profileData.partition, // 每个 profile 独立持久化 session
-      backgroundThrottling: false,
-      additionalArguments: ['--estrix-user-data=' + app.getPath('userData')],
-    },
-  });
-
-  // 保存 session 引用（窗口销毁后 webContents 不可访问）
-  const winSession = mainWindow.webContents.session;
-
-  // 注册窗口上下文（记录 providerId，未确定时为空字符串）
-  windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore);
-  sessionsToFlush.add(winSession);
-
-  // 记录为"上次使用的账号"，下次启动自动打开
-  profileManager.setLastActiveProfile(profileData.id);
-
-  // 更新主窗口引用
-  windowState.setMainWindow(mainWindow);
-
-  // 初始化自动更新（仅第一个窗口时初始化）
-  if (windowState.getAllWindows().length === 1) {
-    updater.initAutoUpdater(mainWindow);
-  }
-
-  // 转发渲染进程的 console.log 到主进程，并按平台写入独立日志文件
-  mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
-    // stdout 可能已断开（EPIPE），console.log 会抛异常导致主进程崩溃，这里兜底
-    try {
-      console.log('[Renderer Console][' + profileData.name + ']', message);
-    } catch (_) { /* 忽略 stdout 写入失败 */ }
-
-    // 打包版不进行日志持久化
-    if (!RENDERER_LOG_DIR) return;
-
-    // 根据当前窗口上下文确定 providerId，未确定用 default
-    let providerId = profileData.providerId || 'default';
-    const ctx = windowState.getContextByWebContents(mainWindow.webContents);
-    if (ctx && ctx.providerId) providerId = ctx.providerId;
-
-    const logFile = path.join(RENDERER_LOG_DIR, providerId + '.log');
-    const timeIso = new Date().toISOString();
-    fs.appendFileSync(logFile, '[' + timeIso + '][' + profileData.name + '] ' + message + '\n', 'utf-8');
-  });
-
-  mainWindow.maximize();
-
-  // 设置与 Electron 33（Chromium 130）匹配的普通 Chrome UA：
-  // 1. 不带 Electron 标识，避免 DeepSeek 识别为第三方客户端
-  // 2. 与内核版本一致，避免 Google OAuth 因 UA/sec-ch-ua 不一致报“浏览器不安全”
-  const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-  mainWindow.webContents.setUserAgent(userAgent);
-
-  if (providerChosen) {
-    // 平台已确定，直接进入平台首页
-    mainWindow.loadURL(provider.homeUrl);
-  } else {
-    // 平台未确定，显示平台选择页
-    const selectPage = path.join(__dirname, '..', 'ui', 'platform-select.html');
-    mainWindow.loadFile(selectPage);
-  }
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('page-loaded');
-      sessionStore.tryRestoreSessionFromUrl(mainWindow);
-    }
-  });
-
-  mainWindow.webContents.on('did-navigate', (_event, url) => {
-    sessionStore.handleUrlChange(url, mainWindow);
-  });
-
-  mainWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    sessionStore.handleUrlChange(url, mainWindow);
-  });
-
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    if (input.key === 'F12') {
-      mainWindow.webContents.toggleDevTools();
-    }
-  });
-
-  mainWindow.on('closed', () => {
-    sessionsToFlush.delete(winSession);
-    windowState.removeWindow(mainWindow.id);
-  });
-}
-
 // ========== 应用菜单 ==========
 function setupAppMenu() {
   const template = [
@@ -167,11 +43,19 @@ function setupAppMenu() {
       label: '文件',
       submenu: [
         {
-          label: '新建窗口',
-          accelerator: 'CmdOrCtrl+N',
+          label: '新建标签',
+          accelerator: 'CmdOrCtrl+T',
           click: () => {
             const profiles = profileManager.readProfiles();
-            createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), ''));
+            tabManager.createTab(profileManager.createProfile('账号' + (profiles.length + 1), ''));
+          }
+        },
+        {
+          label: '关闭当前标签',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab) tabManager.closeTab(tab.tabId);
           }
         },
         { type: 'separator' },
@@ -198,42 +82,44 @@ function setupAppMenu() {
         {
           label: '后退',
           accelerator: 'Alt+Left',
-          click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.navigationHistory.goBack();
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab && !tab.closed) tab.view.webContents.navigationHistory.goBack();
           }
         },
         {
           label: '前进',
           accelerator: 'Alt+Right',
-          click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.navigationHistory.goForward();
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab && !tab.closed) tab.view.webContents.navigationHistory.goForward();
           }
         },
         { type: 'separator' },
         {
           label: '重新加载',
           accelerator: 'CmdOrCtrl+R',
-          click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.reload();
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab && !tab.closed) tab.view.webContents.reload();
           }
         },
         {
           label: '停止加载',
           accelerator: 'Esc',
-          click: (_item, focusedWindow) => {
-            if (focusedWindow) focusedWindow.webContents.stop();
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab && !tab.closed) tab.view.webContents.stop();
           }
         },
         { type: 'separator' },
         {
           label: '主页',
-          click: (_item, focusedWindow) => {
-            if (focusedWindow) {
-              const ctx = windowState.getContextByWebContents(focusedWindow.webContents);
-              if (ctx && ctx.providerId) {
-                const provider = getProvider(ctx.providerId);
-                if (provider) focusedWindow.loadURL(provider.homeUrl);
-              }
+          click: () => {
+            const tab = tabManager.getActiveTab();
+            if (tab && tab.providerId) {
+              const provider = getProvider(tab.providerId);
+              if (provider) tab.view.webContents.loadURL(provider.homeUrl);
             }
           }
         }
@@ -265,94 +151,194 @@ function setupAppMenu() {
     {
       label: '帮助',
       submenu: [
-        {
-          label: '检查更新',
-          click: () => {
-            updater.checkForUpdates();
-          }
-        },
+        { label: '检查更新', click: () => updater.checkForUpdates() },
         { type: 'separator' },
         { role: 'about', label: '关于 Estrix Code' }
       ]
     }
   ];
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 // ========== IPC 处理器 ==========
 registerIpcHandlers();
 
-// 覆盖层"新建窗口"按钮触发
-const { ipcMain: ipcMainForProfile } = require('electron');
-ipcMainForProfile.handle('create-profile-window', async (_event, { providerId } = {}) => {
+// —— 标签相关 IPC ——
+ipcMain.handle('tabs-list', async () => ({
+  success: true,
+  activeTabId: tabManager.getActiveTab() ? tabManager.getActiveTab().tabId : null,
+  tabs: tabManager.getOrderedTabs().map(t => ({
+    tabId: t.tabId, title: t.title, name: t.name,
+    profileId: t.profileId, providerId: t.providerId,
+  })),
+}));
+
+// 新建标签：
+//  - 传 profileId：用已有账号打开（允许同账号多标签）
+//  - 传 providerId（且无 profileId）：为该平台新建账号后打开
+//  - 都不传：新建"未确定平台"账号（显示平台选择页）
+ipcMain.handle('tabs-create', async (_event, { profileId, providerId } = {}) => {
+  let profile = null;
+  if (profileId) {
+    profile = profileManager.getProfileById(profileId);
+    if (!profile) return { success: false, error: '账号不存在' };
+  } else {
+    const profiles = profileManager.readProfiles();
+    const pid = providerId || '';
+    profile = profileManager.createProfile('账号' + (profiles.length + 1), pid);
+  }
+  // 记录该平台上次使用的账号
+  if (profile.providerId) {
+    profileManager.setLastProfileForProvider(profile.providerId, profile.id);
+  }
+  const tab = tabManager.createTab(profile);
+  return { success: true, tabId: tab.tabId };
+});
+
+// 账号列表（按平台分组 + 标记每平台上次使用的账号），供"+ 新建标签"选择
+ipcMain.handle('accounts-list', async () => {
   const profiles = profileManager.readProfiles();
-  // 不指定平台时创建"未确定平台"的 profile，窗口会显示平台选择页
+  const { getAllProviders } = require('../providers');
+  const groups = getAllProviders().map(p => ({
+    providerId: p.id,
+    providerName: p.name,
+    lastProfileId: (profileManager.getLastProfileForProvider(p.id) || {}).id || null,
+    accounts: profiles
+      .filter(x => x.providerId === p.id)
+      .map(x => ({ id: x.id, name: x.name, providerId: x.providerId })),
+  })).filter(g => g.accounts.length > 0);
+
+  // 平台未确定的账号
+  const unknown = profiles
+    .filter(x => !x.providerId)
+    .map(x => ({ id: x.id, name: x.name, providerId: '' }));
+
+  return { success: true, groups, unknown };
+});
+
+ipcMain.handle('tabs-switch', async (_event, { tabId } = {}) => {
+  return { success: tabManager.switchTab(tabId) };
+});
+
+ipcMain.handle('tabs-close', async (_event, { tabId } = {}) => {
+  return { success: tabManager.closeTab(tabId) };
+});
+
+ipcMain.handle('tabs-reorder', async (_event, { orderedIds } = {}) => {
+  return { success: tabManager.reorderTabs(orderedIds) };
+});
+
+// 平台选择（标签内）
+ipcMain.handle('select-platform', async (event, { providerId } = {}) => {
+  if (!providerId) return { success: false, error: '缺少平台ID' };
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx) return { success: false, error: '标签上下文不存在' };
+  const tab = tabManager.getTab(ctx.win && ctx.win.id);
+  if (!tab) return { success: false, error: '标签不存在' };
+  return tabManager.setTabProvider(tab.tabId, providerId);
+});
+
+// 兼容旧接口：新建（标签）
+ipcMain.handle('create-profile-window', async (_event, { providerId } = {}) => {
+  const profiles = profileManager.readProfiles();
   const pid = providerId || '';
-  createWindow(profileManager.createProfile('窗口' + (profiles.length + 1), pid));
+  const profile = profileManager.createProfile('账号' + (profiles.length + 1), pid);
+  tabManager.createTab(profile);
   return { success: true };
 });
 
-// 列出所有 profiles
-ipcMainForProfile.handle('list-profiles', async () => {
-  return { success: true, profiles: profileManager.readProfiles() };
-});
+ipcMain.handle('list-profiles', async () => ({
+  success: true,
+  profiles: profileManager.readProfiles(),
+}));
 
-// 删除指定 profile（会关闭其窗口）
-ipcMainForProfile.handle('delete-profile', async (_event, { profileId }) => {
-  if (!profileId) return { success: false, error: '缺少窗口ID' };
-  const ctx = windowState.getWindowByProfileId(profileId);
-  if (ctx && ctx.win && !ctx.win.isDestroyed()) {
-    ctx.win.close();
+// 打开指定账号的标签（允许同账号多标签，总是新开）
+ipcMain.handle('open-profile-window', async (_event, { profileId } = {}) => {
+  const profile = profileManager.getProfileById(profileId);
+  if (!profile) return { success: false, error: '账号不存在' };
+  if (profile.providerId) {
+    profileManager.setLastProfileForProvider(profile.providerId, profile.id);
   }
+  tabManager.createTab(profile);
+  return { success: true, focused: false };
+});
+
+// 关闭标签（仅关界面，保留账号与登录态）
+ipcMain.handle('close-profile-tab', async (_event, { profileId } = {}) => {
+  if (!profileId) return { success: false, error: '缺少账号ID' };
+  const tab = tabManager.getTabByProfileId(profileId);
+  if (tab) tabManager.closeTab(tab.tabId);
+  return { success: true };
+});
+
+// 删除账号（关闭其标签 + 删除 profile 记录 + 清除该账号 partition 的持久化数据）
+ipcMain.handle('delete-profile', async (_event, { profileId } = {}) => {
+  if (!profileId) return { success: false, error: '缺少账号ID' };
+  const profile = profileManager.getProfileById(profileId);
+  if (!profile) return { success: false, error: '账号不存在' };
+
+  // 先取到该账号标签的 session，用于清空持久化数据（cookies/storage）
+  const tab = tabManager.getTabByProfileId(profileId);
+  const session = tab ? tab.session : null;
+
+  // 关闭标签（若已打开）
+  if (tab) tabManager.closeTab(tab.tabId);
+
+  // 清空 partition 数据：优先用标签 session；否则按 partition 取
+  try {
+    let ses = session;
+    if (!ses && profile.partition) {
+      ses = require('electron').session.fromPartition(profile.partition);
+    }
+    if (ses) await ses.clearStorageData();
+  } catch (err) {
+    console.error('[Profile] 清除账号存储数据失败:', err.message);
+  }
+
   const ok = profileManager.deleteProfile(profileId);
-  return { success: ok, error: ok ? null : '窗口不存在' };
+  return { success: ok, error: ok ? null : '账号不存在' };
 });
 
-// 列出所有内置平台
-ipcMainForProfile.handle('list-providers', async () => {
-  const { getAllProviders } = require('../providers');
-  return {
-    success: true,
-    providers: getAllProviders().map(p => ({
-      id: p.id,
-      name: p.name,
-      custom: !!p._customPath,
-      path: p._customPath || null,
-    })),
-  };
+// 更新标签/账号名称
+ipcMain.handle('update-window-name', async (event, { displayName } = {}) => {
+  if (!displayName || !displayName.trim()) return { success: false };
+  const ctx = windowState.getContextByWebContents(event.sender);
+  if (!ctx) return { success: false, error: '标签上下文不存在' };
+  const tab = tabManager.getTab(ctx.win && ctx.win.id);
+  if (!tab) return { success: false };
+  const updated = tabManager.setTabName(tab.tabId, displayName);
+  return { success: !!updated, name: updated ? updated.name : null };
 });
 
-// 导入自定义 Provider（弹文件选择框，复制到 userData，并处理重名）
-ipcMainForProfile.handle('import-provider', async (event, { replace = false } = {}) => {
-  const win = windowState.getMainWindow();
+// 平台列表
+ipcMain.handle('list-providers', async () => ({
+  success: true,
+  providers: getAllProviders().map(p => ({
+    id: p.id, name: p.name, custom: !!p._customPath, path: p._customPath || null,
+  })),
+}));
+
+// 导入自定义 Provider
+ipcMain.handle('import-provider', async (_event, { replace = false } = {}) => {
+  const win = tabManager.getShellWindow();
   const result = dialog.showOpenDialogSync(win, {
     properties: ['openFile'],
     filters: [{ name: 'JavaScript', extensions: ['js'] }],
     title: '选择自定义 Provider 文件',
   });
-  if (!result || result.length === 0) {
-    return { success: false, canceled: true };
-  }
+  if (!result || result.length === 0) return { success: false, canceled: true };
 
   const filePath = result[0];
   const { importCustomProvider } = require('../providers/custom/loader');
   try {
     const res = importCustomProvider(filePath, { replace });
     if (res.exists && !replace) {
-      // 同名 provider 已存在，询问是否替换
       const confirmRes = await dialog.showMessageBox(win, {
-        type: 'question',
-        buttons: ['取消', '替换'],
-        defaultId: 0,
-        cancelId: 0,
+        type: 'question', buttons: ['取消', '替换'], defaultId: 0, cancelId: 0,
         title: 'Provider 已存在',
         message: '已导入过 id 为 "' + res.provider.id + '" 的 Provider，是否替换？',
       });
-      if (confirmRes.response !== 1) {
-        return { success: false, canceled: true };
-      }
-      // 用户确认替换，重新导入
+      if (confirmRes.response !== 1) return { success: false, canceled: true };
       const finalRes = importCustomProvider(filePath, { replace: true });
       return { success: true, provider: { id: finalRes.provider.id, name: finalRes.provider.name, path: finalRes.targetPath } };
     }
@@ -362,46 +348,28 @@ ipcMainForProfile.handle('import-provider', async (event, { replace = false } = 
   }
 });
 
-// 删除自定义 Provider（先检查是否有窗口在使用）
-ipcMainForProfile.handle('remove-provider', async (_event, { path: filePath, providerId }) => {
+// 删除自定义 Provider
+ipcMain.handle('remove-provider', async (_event, { path: filePath, providerId } = {}) => {
   if (!filePath) return { success: false, error: '缺少文件路径' };
-
-  // 检查是否有窗口正在使用该 provider
-  const usingContexts = windowState.getAllContexts().filter(
-    (ctx) => ctx.providerId === providerId
-  );
-
-  if (usingContexts.length > 0) {
-    const profileNames = usingContexts
-      .map((ctx) => {
-        const profile = profileManager.getProfileById(ctx.profileId);
-        return profile ? profile.name : ctx.profileId;
-      })
-      .join('、');
-    return {
-      success: false,
-      error: '以下窗口正在使用此 Provider，请先在窗口管理中更换这些窗口的平台再删除：' + profileNames,
-    };
+  const usingTabs = tabManager.getAllTabs().filter(t => t.providerId === providerId);
+  if (usingTabs.length > 0) {
+    return { success: false, error: '以下标签正在使用此 Provider，请先切换平台再删除：' + usingTabs.map(t => t.name).join('、') };
   }
-
   const { removeCustomProviderPath } = require('../providers/custom/loader');
   removeCustomProviderPath(filePath);
   return { success: true };
 });
 
-// 替换自定义 Provider（弹文件选择框，校验 id 一致后覆盖）
-ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
+// 替换自定义 Provider
+ipcMain.handle('replace-provider', async (_event, { providerId } = {}) => {
   if (!providerId) return { success: false, error: '缺少 providerId' };
-  const win = windowState.getMainWindow();
+  const win = tabManager.getShellWindow();
   const result = dialog.showOpenDialogSync(win, {
     properties: ['openFile'],
     filters: [{ name: 'JavaScript', extensions: ['js'] }],
     title: '选择新的 Provider 文件（id 必须为 ' + providerId + '）',
   });
-  if (!result || result.length === 0) {
-    return { success: false, canceled: true };
-  }
-
+  if (!result || result.length === 0) return { success: false, canceled: true };
   const filePath = result[0];
   const { replaceCustomProvider } = require('../providers/custom/loader');
   try {
@@ -412,110 +380,40 @@ ipcMainForProfile.handle('replace-provider', async (event, { providerId }) => {
   }
 });
 
-// 用户在平台选择页选择平台后，绑定 profile 并重建窗口（partition 必须随 profile 更新）
-ipcMainForProfile.handle('select-platform', async (event, { providerId }) => {
-  if (!providerId) return { success: false, error: '缺少平台ID' };
-  const ctx = windowState.getContextByWebContents(event.sender);
-  if (!ctx) return { success: false, error: '窗口上下文不存在' };
-
-  const provider = getProvider(providerId);
-  if (!provider) return { success: false, error: '平台不存在: ' + providerId };
-
-  // 更新该窗口 profile 的 providerId 和 partition
-  const updatedProfile = profileManager.updateProfileProvider(ctx.profileId, providerId);
-  if (!updatedProfile) return { success: false, error: '更新 profile 失败' };
-
-  // 关闭旧窗口（其 session 仍是旧 partition）
-  const oldWin = ctx.win;
-  if (oldWin && !oldWin.isDestroyed()) {
-    oldWin.destroy();
-  }
-
-  // 用新 profile（含新 partition）重建窗口
-  createWindow(updatedProfile);
-  return { success: true };
-});
-
-// 打开指定 profile 的窗口（若已存在则聚焦）
-ipcMainForProfile.handle('open-profile-window', async (_event, { profileId }) => {
-  const existing = windowState.getWindowByProfileId(profileId);
-  if (existing && existing.win && !existing.win.isDestroyed()) {
-    const win = existing.win;
-    if (win.isMinimized()) win.restore();
-    win.focus();
-    return { success: true, focused: true };
-  }
-  const profile = profileManager.getProfileById(profileId);
-  if (!profile) return { success: false, error: '窗口不存在' };
-  createWindow(profile);
-  return { success: true, focused: false };
-});
-
-// 更新窗口名称（提取到 DeepSeek 用户信息后）
-ipcMainForProfile.handle('update-window-name', async (event, { displayName }) => {
-  if (!displayName || !displayName.trim()) return { success: false };
-  const ctx = windowState.getContextByWebContents(event.sender);
-  if (!ctx) return { success: false, error: '窗口上下文不存在' };
-  const updated = profileManager.updateProfileName(ctx.profileId, displayName);
-  if (updated && ctx.win && !ctx.win.isDestroyed()) {
-    ctx.win.setTitle('Estrix Code Pro - ' + updated.name);
-  }
-  return { success: !!updated, name: updated ? updated.name : null };
-});
-
 // ========== MCP 相关 IPC ==========
 const mcpConfig = require('./mcp-config');
 const mcpClient = require('./mcp-client');
 
-// 列出所有 MCP server（含启用状态）
-ipcMainForProfile.handle('list-mcp-servers', async () => {
+ipcMain.handle('list-mcp-servers', async () => {
   const servers = mcpConfig.getServers();
   const connected = new Set(mcpClient.getConnectedServers().map(s => s.name));
-  console.log('[MCP DEBUG] servers:', JSON.stringify(servers.map(s => ({ name: s.name, enabled: s.enabled }))));
-  console.log('[MCP DEBUG] connected:', JSON.stringify(Array.from(connected)));
   return { success: true, servers: servers.map(s => ({ ...s, connected: connected.has(s.name) })) };
 });
-
-// 添加或更新 MCP server 配置
-ipcMainForProfile.handle('upsert-mcp-server', async (_event, { server }) => {
-  if (!server || !server.name || !server.type) {
-    return { success: false, error: 'server 配置不完整（需要 name 和 type）' };
-  }
+ipcMain.handle('upsert-mcp-server', async (_event, { server } = {}) => {
+  if (!server || !server.name || !server.type) return { success: false, error: 'server 配置不完整（需要 name 和 type）' };
   mcpConfig.upsertServer(server);
   return { success: true };
 });
-
-// 删除 MCP server
-ipcMainForProfile.handle('remove-mcp-server', async (_event, { name }) => {
+ipcMain.handle('remove-mcp-server', async (_event, { name } = {}) => {
   await mcpClient.disconnectServerByName(name);
   mcpConfig.removeServer(name);
   return { success: true };
 });
-
-// 启用 MCP server（连接并拉取工具）
-ipcMainForProfile.handle('enable-mcp-server', async (_event, { name }) => {
+ipcMain.handle('enable-mcp-server', async (_event, { name } = {}) => {
   try {
     mcpConfig.setServerEnabled(name, true);
     await mcpClient.connectServerByName(name);
-    console.log('[MCP DEBUG] enable 完成, connections:', JSON.stringify(Array.from(mcpClient.getConnectedServers().map(s => s.name))));
     return { success: true };
   } catch (err) {
-    console.error('[MCP DEBUG] enable 失败:', err);
     return { success: false, error: err.message };
   }
 });
-
-// 禁用 MCP server（断开连接）
-ipcMainForProfile.handle('disable-mcp-server', async (_event, { name }) => {
+ipcMain.handle('disable-mcp-server', async (_event, { name } = {}) => {
   mcpConfig.setServerEnabled(name, false);
   await mcpClient.disconnectServerByName(name);
   return { success: true };
 });
-
-// 获取已启用 server 的工具列表（用于注入提示词）
-ipcMainForProfile.handle('get-mcp-tools', async () => {
-  return { success: true, tools: mcpClient.getMcpToolList() };
-});
+ipcMain.handle('get-mcp-tools', async () => ({ success: true, tools: mcpClient.getMcpToolList() }));
 
 // ========== 单实例锁 ==========
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
@@ -523,29 +421,24 @@ if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    const mainWindow = windowState.getMainWindow();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+    const win = tabManager.getShellWindow();
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
     }
   });
 
   app.whenReady().then(() => {
     setupAppMenu();
-    // 默认打开上次使用的账号；若不存在则打开第一个账号；都没有则新建
-    const lastActive = profileManager.getLastActiveProfile();
-    if (lastActive) {
-      createWindow(lastActive);
-    } else {
-      const profiles = profileManager.readProfiles();
-      if (profiles.length > 0) {
-        createWindow(profiles[0]);
-      } else {
-        createWindow(null);
-      }
-    }
+    tabManager.createShellWindow();
+    // 壳页面加载完成后恢复标签布局
+    const shell = tabManager.getShellWindow();
+    shell.webContents.on('did-finish-load', () => {
+      console.log('[Tabs] 壳页面加载完成，开始恢复标签');
+      tabManager.restoreTabs();
+      tabManager.notifyShell();
+    });
 
-    // 后台连接已启用的 MCP server，不阻塞窗口创建
     mcpClient.connectEnabledServers().catch(err => {
       console.error('[MCP] 初始化连接失败:', err.message);
     });
@@ -562,13 +455,16 @@ app.on('before-quit', (event) => {
   if (quitFlushed) return;
   event.preventDefault();
   quitFlushed = true;
-  flushAllSessions().finally(() => {
-    app.quit();
-  });
+  tabManager.flushAllSessions().finally(() => app.quit());
 });
 
 app.on('activate', () => {
-  if (windowState.getAllWindows().length === 0) {
-    createWindow(null);
+  if (!tabManager.getShellWindow()) {
+    tabManager.createShellWindow();
+    const shell = tabManager.getShellWindow();
+    shell.webContents.on('did-finish-load', () => {
+      tabManager.restoreTabs();
+      tabManager.notifyShell();
+    });
   }
 });

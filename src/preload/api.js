@@ -34,6 +34,32 @@ let electronAPI = {
   createProfileWindow: () => {
     return ipcRenderer.invoke('create-profile-window');
   },
+  // ========== 标签页 API ==========
+  tabsList: () => {
+    return ipcRenderer.invoke('tabs-list');
+  },
+  tabsCreate: (opts) => {
+    // opts: { profileId } 用已有账号；{ providerId } 新建账号；空 新建未确定平台账号
+    const payload = (opts && typeof opts === 'object') ? opts : { providerId: opts };
+    return ipcRenderer.invoke('tabs-create', payload);
+  },
+  accountsList: () => {
+    return ipcRenderer.invoke('accounts-list');
+  },
+  tabsSwitch: (tabId) => {
+    return ipcRenderer.invoke('tabs-switch', { tabId });
+  },
+  tabsClose: (tabId) => {
+    return ipcRenderer.invoke('tabs-close', { tabId });
+  },
+  tabsReorder: (orderedIds) => {
+    return ipcRenderer.invoke('tabs-reorder', { orderedIds });
+  },
+  onTabsUpdated: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('tabs-updated', listener);
+    return () => ipcRenderer.removeListener('tabs-updated', listener);
+  },
   listProfiles: () => {
     return ipcRenderer.invoke('list-profiles');
   },

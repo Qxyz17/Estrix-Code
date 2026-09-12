@@ -27,17 +27,19 @@ function readStore() {
     if (fs.existsSync(file)) {
       const raw = JSON.parse(fs.readFileSync(file, 'utf-8'));
       if (Array.isArray(raw)) {
-        return { lastActiveProfileId: null, profiles: raw };
+        return { lastActiveProfileId: null, lastProfileByProvider: {}, profiles: raw };
       }
       return {
         lastActiveProfileId: raw.lastActiveProfileId || null,
+        lastProfileByProvider: raw.lastProfileByProvider && typeof raw.lastProfileByProvider === 'object'
+          ? raw.lastProfileByProvider : {},
         profiles: Array.isArray(raw.profiles) ? raw.profiles : [],
       };
     }
   } catch (err) {
     console.error('[Profile] 读取账号列表失败:', err.message);
   }
-  return { lastActiveProfileId: null, profiles: [] };
+  return { lastActiveProfileId: null, lastProfileByProvider: {}, profiles: [] };
 }
 
 function writeStore(store) {
@@ -89,9 +91,36 @@ function createProfile(name, providerId) {
   profiles.push(profile);
   store.profiles = profiles;
   store.lastActiveProfileId = id;
+  // 记录该平台上次使用的账号
+  if (pid) {
+    store.lastProfileByProvider = store.lastProfileByProvider || {};
+    store.lastProfileByProvider[pid] = id;
+  }
   writeStore(store);
   console.log('[Profile] 已创建账号:', profile.id, profile.name, 'provider=' + (pid || '(未确定)'));
   return profile;
+}
+
+/**
+ * 记录某平台"上次使用的账号"
+ */
+function setLastProfileForProvider(providerId, profileId) {
+  if (!providerId) return;
+  const store = readStore();
+  store.lastProfileByProvider = store.lastProfileByProvider || {};
+  store.lastProfileByProvider[providerId] = profileId || null;
+  writeStore(store);
+}
+
+/**
+ * 获取某平台"上次使用的账号"（若该账号已不存在则返回 null）
+ */
+function getLastProfileForProvider(providerId) {
+  if (!providerId) return null;
+  const store = readStore();
+  const id = (store.lastProfileByProvider || {})[providerId];
+  if (!id) return null;
+  return store.profiles.find(p => p.id === id) || null;
 }
 
 /**
@@ -153,6 +182,8 @@ function updateProfileProvider(id, providerId) {
   if (!p || !providerId) return null;
   p.providerId = providerId;
   p.partition = buildPartition(providerId, id);
+  store.lastProfileByProvider = store.lastProfileByProvider || {};
+  store.lastProfileByProvider[providerId] = id;
   writeStore(store);
   return p;
 }
@@ -180,4 +211,6 @@ module.exports = {
   deleteProfile,
   setLastActiveProfile,
   getLastActiveProfile,
+  setLastProfileForProvider,
+  getLastProfileForProvider,
 };
