@@ -8,8 +8,8 @@ const path = require('path');
 
 const isWin = process.platform === 'win32';
 
-// 创建 wyp/log 目录
-const logDir = path.join(__dirname, 'wyp', 'log');
+// 创建 logs 目录
+const logDir = path.join(__dirname, 'logs');
 fs.mkdirSync(logDir, { recursive: true });
 
 // 清空旧日志

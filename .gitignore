@@ -24,7 +24,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
-wyp/
 
 # User data (contains session/cookies)
 userData/

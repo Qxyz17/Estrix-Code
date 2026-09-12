@@ -20,7 +20,7 @@ console.log('[Estrix Code] Session 数据目录:', app.getPath('userData'));
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
 const RENDERER_LOG_DIR = app.isPackaged
   ? null
-  : path.join(app.getPath('userData'), 'wyp', 'log');
+  : path.join(app.getPath('userData'), 'logs');
 if (RENDERER_LOG_DIR) {
   fs.mkdirSync(RENDERER_LOG_DIR, { recursive: true });
   // 开发环境每次启动清空平台日志，避免无限累积（与 start.js 清空 electron.log 一致）

@@ -171,7 +171,7 @@ MCP 配置采用 **Claude Desktop 兼容格式**（可直接分享/导入）：
 ```
 estrix-code/
 ├── main.js                 # Electron 主进程入口（薄壳，转发到 src/main/）
-├── start.js                # 跨平台启动脚本（日志写入 wyp/log/）
+├── start.js                # 跨平台启动脚本（日志写入 logs/）
 ├── preload.js              # Preload 入口
 ├── src/
 │   ├── main/               # 主进程逻辑

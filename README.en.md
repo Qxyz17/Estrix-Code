@@ -171,7 +171,7 @@ See `src/providers/custom/provider.d.ts` for type declarations. Import the JS fi
 ```
 estrix-code/
 ├── main.js                 # Electron main process entry (thin shell, forwards to src/main/)
-├── start.js                # Cross-platform startup script (logs to wyp/log/)
+├── start.js                # Cross-platform startup script (logs to logs/)
 ├── preload.js              # Preload entry
 ├── src/
 │   ├── main/               # Main process logic

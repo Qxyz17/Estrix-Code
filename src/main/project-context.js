@@ -20,7 +20,7 @@ function logWithFile(providerId, msg) {
   console.log(msg);
   try {
     if (!app.isPackaged) {
-      const logDir = path.join(app.getPath('userData'), 'wyp', 'log');
+      const logDir = path.join(app.getPath('userData'), 'logs');
       if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       const logFile = path.join(logDir, (providerId || 'default') + '.log');
       fs.appendFileSync(logFile, '[' + new Date().toISOString() + '] ' + msg + '\n', 'utf-8');

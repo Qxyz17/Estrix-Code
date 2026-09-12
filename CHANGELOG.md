@@ -54,7 +54,7 @@
 - 自定义 Provider 类型声明与模板：`src/providers/custom/provider.d.ts` + `provider.template.js`
 - Provider 方法化：平台差异全部下沉到 Provider 方法（findInput/findSendButton/isResponseComplete/getMessageCandidates 等）
 - Claude 自动解析：基于停止按钮边沿触发完成检测，跳过空消息，避免重复触发
-- 按平台分文件记录渲染日志到 `wyp/log/{providerId}.log`
+- 按平台分文件记录渲染日志到 `logs/{providerId}.log`
 - 新增 Provider 单元测试
 
 ### Changed
