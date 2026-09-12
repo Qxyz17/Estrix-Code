@@ -24,13 +24,24 @@ Thumbs.db
 # Logs
 logs/
 *.log
+wyp/
 
 # User data (contains session/cookies)
 userData/
 
+# Account & session data (cookies/login state)
+session-dir-map-*.json
+profile-list.json
+Partitions/
+
+# Electron build artifacts
+*.blockmap
+latest*.yml
+
 # Temp
 *.tmp
 temp/
+test/tmp/
 
 # Project specific
 .estrixCode/
@@ -39,4 +50,3 @@ temp/
 # Coverage reports
 coverage.lcov
 test/coverage.lcov
-/wyp/

@@ -42,14 +42,14 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 
 ## Main Features
 
-- **Multi-window management**: each window has an independent profile context without interference
+- **Multi-account management**: manage multiple accounts grouped by platform, each with an isolated login session
 - **Project initialization**: after selecting a project directory, the AI gets the directory tree and system prompt, so operations are based on real project context
 - **Tool call system**: the AI can call tools for reading/writing files, searching code, executing commands, querying databases, and more
 - **Command interception**: automatically detects cmd / powershell / bash code blocks and executes them after confirmation
 - **MCP support**: uses Claude Desktop compatible configuration format and supports stdio / http server types
 - **Overlay panel**: shows command previews, execution results, and history; toggle with Ctrl+Shift+C or Esc
 - **Automatic retry**: when JS execution fails and the code appears incomplete, it automatically waits 1 second, refetches, and retries (up to 3 times); only reports back to the AI if it still fails
-- **Session persistence**: login state and settings are saved to %APPDATA%/estrix-ai-pro-session
+- **Login persistence**: each account's login state is saved to %APPDATA%/Estrix-Code and reused automatically on next launch (the last-used account opens by default)
 - **Safety mechanisms**: 30-second command timeout, 60-second sandbox timeout, 1MB output buffer, dangerous command confirmation
 
 ---

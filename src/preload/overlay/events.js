@@ -18,7 +18,7 @@ async function renderWindowList() {
     const res = await window.electronAPI.listProfiles();
     const profiles = res && res.success ? res.profiles : [];
     if (!profiles || profiles.length === 0) {
-      list.innerHTML = '<div class="estrix-session-empty">暂无窗口</div>';
+      list.innerHTML = '<div class="estrix-session-empty">暂无账号</div>';
       return;
     }
     // 获取平台名映射
@@ -49,13 +49,13 @@ async function renderWindowList() {
         try {
           const r = await window.electronAPI.openProfileWindow(profileId);
           if (r && r.success) {
-            showToast(r.focused ? '已切换到该窗口' : '已打开窗口', 2000);
+            showToast(r.focused ? '已切换到该账号' : '已打开账号', 2000);
             closeWindowManager();
           } else {
             showToast((r && r.error) || '打开失败', 3000);
           }
         } catch (err) {
-          showToast('打开窗口失败: ' + (err.message || err), 3000);
+          showToast('打开账号失败: ' + (err.message || err), 3000);
         }
       });
     });
@@ -67,7 +67,7 @@ async function renderWindowList() {
         try {
           const r = await window.electronAPI.deleteProfileWindow(profileId);
           if (r && r.success) {
-            showToast('已删除窗口', 2000);
+            showToast('已删除账号', 2000);
             await renderWindowList();
           } else {
             showToast((r && r.error) || '删除失败', 3000);

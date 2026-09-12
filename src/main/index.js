@@ -13,8 +13,8 @@ const { getProvider } = require('../providers');
 const updater = require('./updater');
 
 // ========== 持久化会话配置 ==========
-const SESSION_DIR = process.env.ESTRIX_SESSION_DIR || 'estrix-ai-pro-session';
-app.setPath('userData', path.join(app.getPath('appData'), SESSION_DIR));
+// 使用 Electron 默认 userData 目录（%AppData%/Estrix-Code），
+// 所有窗口配置、账号 partition（cookies/session）均落在该目录下。
 console.log('[Estrix Code] Session 数据目录:', app.getPath('userData'));
 
 // 渲染进程日志输出目录（仅开发环境持久化；打包版不写日志文件）
@@ -83,6 +83,9 @@ function createWindow(profile) {
   // 注册窗口上下文（记录 providerId，未确定时为空字符串）
   windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore);
   sessionsToFlush.add(winSession);
+
+  // 记录为"上次使用的账号"，下次启动自动打开
+  profileManager.setLastActiveProfile(profileData.id);
 
   // 更新主窗口引用
   windowState.setMainWindow(mainWindow);
@@ -526,7 +529,18 @@ if (!gotSingleInstanceLock) {
 
   app.whenReady().then(() => {
     setupAppMenu();
-    createWindow(null);
+    // 默认打开上次使用的账号；若不存在则打开第一个账号；都没有则新建
+    const lastActive = profileManager.getLastActiveProfile();
+    if (lastActive) {
+      createWindow(lastActive);
+    } else {
+      const profiles = profileManager.readProfiles();
+      if (profiles.length > 0) {
+        createWindow(profiles[0]);
+      } else {
+        createWindow(null);
+      }
+    }
 
     // 后台连接已启用的 MCP server，不阻塞窗口创建
     mcpClient.connectEnabledServers().catch(err => {
