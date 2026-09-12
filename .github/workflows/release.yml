@@ -18,6 +18,8 @@ jobs:
             command: build:win
           - os: macos-latest
             command: build:mac
+          - os: ubuntu-latest
+            command: build:linux
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -37,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and Publish (正式版)
+      - name: Build and Publish (正式/预发布)
         if: ${{ !contains(github.ref_name, '-beta') }}
         run: npm run ${{ matrix.command }}
         env:
@@ -57,4 +59,6 @@ jobs:
             dist/*.exe.blockmap
             dist/*.zip
             dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
           retention-days: 30

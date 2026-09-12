@@ -8,7 +8,7 @@
   <a href="https://github.com/Qxyz17/Estrix-Code/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
   <a href="https://github.com/Qxyz17/Estrix-Code"><img src="https://img.shields.io/github/stars/Qxyz17/Estrix-Code?style=flat-square&color=yellow" alt="Stars"></a>
   <a href="https://github.com/Qxyz17/Estrix-Code/releases"><img src="https://img.shields.io/github/downloads/Qxyz17/Estrix-Code/total?style=flat-square&color=green" alt="Downloads"></a>
-  <a href="https://github.com/Qxyz17/Estrix-Code"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS-8b93ff?style=flat-square" alt="Platform"></a>
+  <a href="https://github.com/Qxyz17/Estrix-Code"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-8b93ff?style=flat-square" alt="Platform"></a>
   <a href="https://github.com/Qxyz17/Estrix-Code"><img src="https://img.shields.io/badge/Electron-33-47848f?style=flat-square&logo=electron&logoColor=white" alt="Electron"></a>
 </p>
 
@@ -207,8 +207,8 @@ estrix-code/
 
 ## 构建与发布
 
-- 本仓库已配置 GitHub Actions，推送 `v*` 标签（如 `v0.3.0`）会自动构建 Windows 和 macOS 安装包并发布到 Releases
-- 本地手动构建：`npm run build:win:local` 或 `npm run build:mac:local`
+- 本仓库已配置 GitHub Actions，推送 `v*` 标签（如 `v0.1.0-alpha`）会自动构建 Windows、macOS 和 Linux 安装包并发布到 Releases
+- 本地手动构建：`npm run build:win:local`、`npm run build:mac:local` 或 `npm run build:linux:local`
 - 构建产物输出到 `dist/` 目录
 
 ---
