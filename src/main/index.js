@@ -97,7 +97,10 @@ function createWindow(profile) {
 
   // 转发渲染进程的 console.log 到主进程，并按平台写入独立日志文件
   mainWindow.webContents.on('console-message', (_event, level, message, _line, _sourceId) => {
-    console.log('[Renderer Console][' + profileData.name + ']', message);
+    // stdout 可能已断开（EPIPE），console.log 会抛异常导致主进程崩溃，这里兜底
+    try {
+      console.log('[Renderer Console][' + profileData.name + ']', message);
+    } catch (_) { /* 忽略 stdout 写入失败 */ }
 
     // 打包版不进行日志持久化
     if (!RENDERER_LOG_DIR) return;
