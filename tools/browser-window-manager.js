@@ -1,4 +1,5 @@
 const { BrowserWindow } = require('electron');
+const userAgent = require('../src/main/user-agent');
 
 class BrowserWindowManager {
   constructor() {
@@ -25,10 +26,8 @@ class BrowserWindowManager {
       ...options
     });
 
-    // 设置与主窗口一致的 Chrome 130 普通 UA，避免暴露 Electron 标识
-    const userAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-    win.webContents.setUserAgent(userAgent);
+    // 设置与主窗口一致的 Chrome UA，避免暴露 Electron 标识
+    win.webContents.setUserAgent(userAgent.CHROME_UA);
 
     if (url) win.loadURL(url);
     this.windows.set(id, win);

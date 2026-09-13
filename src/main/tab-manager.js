@@ -14,6 +14,7 @@ const fs = require('fs');
 const { app } = require('electron');
 
 const profileManager = require('./profile-manager');
+const userAgent = require('./user-agent');
 const { createSessionStore } = require('./session-store');
 const { getProvider } = require('../providers');
 const windowState = require('./window');
@@ -210,9 +211,8 @@ function createTab(profile) {
     try { console.log('[Renderer Console][' + tab.name + ']', message); } catch (_) {}
   });
 
-  const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-  view.webContents.setUserAgent(userAgent);
+  // 伪装为普通 Chrome（全局兜底 UA 已在 app 启动时设置）
+  view.webContents.setUserAgent(userAgent.CHROME_UA);
 
   view.webContents.on('did-finish-load', () => {
     if (tab.closed) return;

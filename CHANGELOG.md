@@ -1,9 +1,12 @@
 # Changelog
 
 
-## [0.2.3-alpha.1] - 2026-09-13
+## [0.2.4-alpha] - 2026-09-13
 
 ### Fixed
+- **修复 ChatGPT 打开后停在空白页（Cloudflare 挑战不通过）**：原先仅在 webContents 上伪装 UA，
+  初始导航/预连接/挑战编排请求仍带 Electron 默认 UA，被 Cloudflare 判定为自动化而卡在「请稍候…」。
+  改为在 app 启动时设置 app.userAgentFallback，覆盖整个网络栈
 - **修复"初始化项目"目录选择弹窗错误地变成选文件**：标签页模式下把标签句柄当作对话框 parent，导致 `openDirectory` 失效
 - 修复项目相关消息（目录更新、初始提示词）在标签页模式下发送目标错误
 
@@ -206,3 +209,4 @@
 - 危险命令（rm -rf /、format、shutdown 等）触发额外警告
 - 30 秒命令执行超时限制
 - 1MB 命令输出缓冲区限制
+

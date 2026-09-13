@@ -10,6 +10,13 @@ const { app, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+const userAgent = require('./user-agent');
+
+// 必须在任何网络活动前设置全局兜底 UA：
+// ChatGPT 前置的 Cloudflare 挑战会检查所有请求的 UA，只有 webContents.setUserAgent
+// 时初始导航/挑战编排请求仍带 Electron 标识，挑战不通过 → 空白页。
+userAgent.applyGlobalUserAgent(app);
+
 const windowState = require('./window');
 const profileManager = require('./profile-manager');
 const tabManager = require('./tab-manager');
