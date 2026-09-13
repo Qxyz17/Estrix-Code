@@ -39,6 +39,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Linux build deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot libarchive-tools rpm
+
       - name: Build and Publish (正式/预发布)
         if: ${{ !contains(github.ref_name, '-beta') }}
         run: npm run ${{ matrix.command }}
