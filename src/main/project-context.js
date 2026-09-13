@@ -35,22 +35,27 @@ function logWithFile(providerId, msg) {
  */
 async function initProject(skipPrompt = false, windowContext = null) {
   const ctx = windowContext || windowState.getMainContext();
-  const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
+  // 标签句柄：用它的 webContents 发消息 / 聚焦
+  const handle = ctx ? ctx.win : windowState.getMainWindow();
+  // dialog 的 parent 必须是原生 BrowserWindow；标签句柄用 _nativeWindow 兜底
+  const parentWindow = (handle && handle._nativeWindow) ? handle._nativeWindow : handle;
   const sessionStore = ctx ? ctx.sessionStore : null;
   // providerId 来自窗口上下文（可能为空，表示未确定平台）
   const providerId = (ctx && ctx.providerId) || '';
 
   // 先让用户选择目录
-  const result = dialog.showOpenDialogSync(mainWindow, {
+  const result = dialog.showOpenDialogSync(parentWindow, {
     properties: ['openDirectory'],
     buttonLabel: '选择目录',
     title: '请选择要分析的项目目录',
   });
 
   // 无论用户是否选择目录，对话框关闭后都恢复主窗口焦点（避免输入框失效）
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.focus();
-    mainWindow.webContents.focus();
+  if (parentWindow && !parentWindow.isDestroyed()) {
+    parentWindow.focus();
+  }
+  if (handle && handle.webContents && !handle.webContents.isDestroyed()) {
+    handle.webContents.focus();
   }
 
   if (!result || result.length === 0) {
@@ -75,8 +80,8 @@ async function initProject(skipPrompt = false, windowContext = null) {
     } else {
       // 如果未能获取会话ID，尝试从当前URL提取
       let sessionId = null;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        const url = mainWindow.webContents.getURL();
+      if (handle && handle.webContents && !handle.webContents.isDestroyed()) {
+        const url = handle.webContents.getURL();
         sessionId = sessionStore.extractSessionIdFromUrl(url);
       }
       if (sessionId) {
@@ -92,9 +97,9 @@ async function initProject(skipPrompt = false, windowContext = null) {
   }
 
   stepLog('目录保存完成');
-  // 发送目录更新事件到渲染进程
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('project-dir-updated', selectedDir);
+  // 发送目录更新事件到渲染进程（发给标签页面）
+  if (handle && handle.webContents && !handle.webContents.isDestroyed()) {
+    handle.webContents.send('project-dir-updated', selectedDir);
   }
 
   // 如果只是修改目录，跳过发送初始提示
@@ -238,8 +243,8 @@ async function initProject(skipPrompt = false, windowContext = null) {
 
   stepLog('提示词组装完成');
   console.log('[Estrix Code] 准备发送初始提示（不含目录树），长度:', combined.length);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('initial-prompt', combined);
+  if (handle && handle.webContents && !handle.webContents.isDestroyed()) {
+    handle.webContents.send('initial-prompt', combined);
   }
   stepLog('initial-prompt 已发送');
 
