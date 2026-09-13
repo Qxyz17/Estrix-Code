@@ -8,7 +8,7 @@
  *
  * 每个标签绑定一个 profile（平台 + 账号），使用独立 partition 持久化登录态。
  */
-const { BrowserWindow, WebContentsView } = require('electron');
+const { BrowserWindow, WebContentsView, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
@@ -341,6 +341,22 @@ function setTabName(tabId, name) {
 }
 
 // ========== 创建壳窗口 ==========
+/** 根据系统主题选择窗口图标（深色→白色图标，浅色→黑色图标） */
+function getThemedIcon() {
+  const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png';
+  return path.join(__dirname, '..', 'ui', name);
+}
+
+/** 应用当前主题图标到壳窗口 */
+function applyThemedIcon() {
+  if (!shellWindow || shellWindow.isDestroyed()) return;
+  try {
+    shellWindow.setIcon(getThemedIcon());
+  } catch (err) {
+    console.error('[Tabs] 设置窗口图标失败:', err.message);
+  }
+}
+
 function createShellWindow() {
   shellWindow = new BrowserWindow({
     width: 1280,
@@ -376,10 +392,14 @@ function createShellWindow() {
   });
 
   shellWindow.on('resize', () => layoutAll());
+  // 应用跟随系统主题的窗口图标
+  applyThemedIcon();
+  nativeTheme.on('updated', applyThemedIcon);
   shellWindow.maximize();
   layoutAll();
 
   shellWindow.on('closed', () => {
+    nativeTheme.removeListener('updated', applyThemedIcon);
     shellWindow = null;
     tabBarView = null;
     tabs.clear();
