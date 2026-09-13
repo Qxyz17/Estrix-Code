@@ -61,7 +61,7 @@ jobs:
       - name: Compose release notes
         run: |
           {
-            echo "> DeepSeek 桌面应用 —— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
+            echo "> 多平台 AI 桌面应用（DeepSeek / ChatGPT / Claude）—— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
             echo "";
             echo "## ✨ 本次更新";
             echo "";

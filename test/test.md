@@ -388,7 +388,7 @@ log(r);
 
 ## 项目简介
 
-**Estrix Code** 是一个 Electron 桌面应用，将 chat.deepseek.com 嵌入浏览器窗口，并注入覆盖层面板。AI 通过系统提示词被引导生成 JavaScript 工具调用（```estrix 代码块），在受限沙箱中执行文件读写、命令执行、搜索、任务管理等操作，结果回传 AI，形成 Agent 循环。
+**Estrix Code** 是一个 Electron 多平台 AI 桌面应用，将 chat.deepseek.com / chatgpt.com / claude.ai 等平台嵌入浏览器窗口，并注入覆盖层面板。AI 通过系统提示词被引导生成 JavaScript 工具调用（```estrix 代码块），在受限沙箱中执行文件读写、命令执行、搜索、任务管理等操作，结果回传 AI，形成 Agent 循环。
 
 ## 常用命令
 
