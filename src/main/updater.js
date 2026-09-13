@@ -122,6 +122,21 @@ async function showUpdateErrorDialog(error, isManual) {
 
 /** 手动检查更新入口 */
 async function checkForUpdates() {
+  // 开发环境（未打包）不支持自动更新，直接提示
+  if (!app.isPackaged) {
+    const parent = mainWindowRef && !mainWindowRef.isDestroyed() ? mainWindowRef : null;
+    const options = {
+      type: 'info',
+      title: '检查更新',
+      message: '当前为开发环境',
+      detail: '开发环境不支持自动更新，请使用打包后的版本。',
+      buttons: ['确定'],
+    };
+    if (parent) await dialog.showMessageBox(parent, options);
+    else await dialog.showMessageBox(options);
+    return;
+  }
+
   if (updateDownloaded) {
     // 已有下载完成的更新，直接提示安装
     const options = {

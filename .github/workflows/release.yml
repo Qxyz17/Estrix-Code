@@ -37,26 +37,65 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and Publish (正式/预发布)
-        if: ${{ !contains(github.ref_name, '-beta') }}
+      - name: Build and Publish
         run: npm run ${{ matrix.command }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build only (beta)
-        if: ${{ contains(github.ref_name, '-beta') }}
-        run: npm run ${{ matrix.command }}:local
+  # 构建完成后写入 Release 说明（固定模板 + 从 CHANGELOG 提取本版更新）
+  release-notes:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Upload beta artifacts
-        if: ${{ contains(github.ref_name, '-beta') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: beta-${{ matrix.os }}
-          path: |
-            dist/*.exe
-            dist/*.exe.blockmap
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.deb
-          retention-days: 30
+      - name: Extract changelog for this version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          node scripts/extract-changelog.js "$VERSION" > changelog-section.md
+          echo "--- extracted ---"
+          cat changelog-section.md
+
+      - name: Compose release notes
+        run: |
+          {
+            echo "> DeepSeek 桌面应用 —— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
+            echo "";
+            echo "## ✨ 本次更新";
+            echo "";
+            cat changelog-section.md;
+            echo "";
+            echo "## 📥 下载安装";
+            echo "";
+            echo "| 平台 | 文件 | 说明 |";
+            echo "| --- | --- | --- |";
+            echo "| **Windows** | `estrix-code-win-*.exe` | 安装版（推荐），双击安装 |";
+            echo "| **Windows** | `estrix-code-win-*-portable.exe` | 免安装便携版 |";
+            echo "| **macOS** | `estrix-code-mac-*.dmg` | 拖入「应用程序」安装 |";
+            echo "";
+            echo "## 🚀 主要功能";
+            echo "";
+            echo "- **多平台支持**：DeepSeek / ChatGPT / Claude，可导入自定义平台";
+            echo "- **标签页多账号**：单窗口多标签，每个平台/账号独立登录态，重启保持";
+            echo "- **AI 命令执行**：自动识别回复中的命令并执行，支持 bash / pwsh / 文件操作 / 代码运行";
+            echo "- **MCP 扩展**：支持 Model Context Protocol，接入外部工具";
+            echo "- **项目上下文**：绑定项目目录，AI 感知当前工程";
+            echo "";
+            echo "## ⚠️ 说明";
+            echo "";
+            echo "- 当前为 **Alpha 测试版**，功能可能不稳定，欢迎反馈问题";
+            echo "";
+            echo "---";
+            echo "";
+            echo "📦 完整更新日志见 [CHANGELOG.md](https://github.com/Qxyz17/Estrix-Code/blob/main/CHANGELOG.md)";
+          } > release-body.md
+          echo "--- composed ---"
+          cat release-body.md
+
+      - name: Update release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --notes-file release-body.md
