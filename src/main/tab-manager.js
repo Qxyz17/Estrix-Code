@@ -364,6 +364,11 @@ function createShellWindow() {
   shellWindow.contentView.addChildView(tabBarView);
   tabBarView.webContents.loadFile(path.join(__dirname, '..', 'ui', 'shell.html'));
 
+  // 转发壳页面 console 到主进程
+  tabBarView.webContents.on('console-message', (_e, _level, message) => {
+    try { console.log('[Shell Console]', message); } catch (_) {}
+  });
+
   tabBarView.webContents.on('did-finish-load', () => {
     console.log('[Tabs] 壳页面加载完成，开始恢复标签');
     restoreTabs();

@@ -119,64 +119,6 @@
     }
 
     body { display: flex; flex-direction: column; }
-
-    /* 账号选择浮层 */
-    #account-picker {
-      position: fixed;
-      top: 44px;
-      left: 8px;
-      width: 300px;
-      max-height: 70vh;
-      overflow-y: auto;
-      background: #1c1f38;
-      border: 1px solid rgba(139, 147, 255, 0.35);
-      border-radius: 12px;
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
-      z-index: 100;
-      padding: 8px;
-      display: none;
-    }
-
-    #account-picker.show { display: block; }
-
-    .ap-group-title {
-      font-size: 11px;
-      color: #8a90b8;
-      padding: 8px 10px 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .ap-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 10px;
-      border-radius: 8px;
-      color: #dde1ff;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .ap-item:hover { background: rgba(139, 147, 255, 0.15); }
-
-    .ap-item .ap-last {
-      font-size: 10px;
-      color: #4ade80;
-      border: 1px solid rgba(74, 222, 128, 0.4);
-      border-radius: 4px;
-      padding: 0 4px;
-      flex-shrink: 0;
-    }
-
-    .ap-item .ap-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .ap-sep { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 6px 4px; }
-
-    .ap-new {
-      color: #8b93ff;
-      font-weight: 600;
-    }
   </style>
 </head>
 <body>
@@ -184,7 +126,6 @@
     <button class="tab-new" id="btn-new" title="新建标签 (Ctrl+T)">+</button>
   </div>
   <div id="content-placeholder"></div>
-  <div id="account-picker"></div>
 
   <script>
     const tabbar = document.getElementById('tabbar');
@@ -269,90 +210,9 @@
 
     btnNew.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleAccountPicker();
+      // 用原生菜单弹出账号选择（浮层会被 40px 高的标签栏视图裁剪，改用原生菜单）
+      api().tabsCreateMenu();
     });
-
-    // 点击别处关闭浮层
-    document.addEventListener('click', (e) => {
-      const picker = document.getElementById('account-picker');
-      if (!picker.classList.contains('show')) return;
-      if (picker.contains(e.target) || e.target === btnNew) return;
-      picker.classList.remove('show');
-    });
-
-    // 打开/关闭账号选择浮层
-    async function toggleAccountPicker() {
-      const picker = document.getElementById('account-picker');
-      if (picker.classList.contains('show')) {
-        picker.classList.remove('show');
-        return;
-      }
-      await renderAccountPicker();
-      picker.classList.add('show');
-    }
-
-    // 渲染账号选择浮层：按平台分组 + 每平台上次账号标记 + 新建账号
-    async function renderAccountPicker() {
-      const picker = document.getElementById('account-picker');
-      picker.innerHTML = '<div class="ap-group-title">加载中...</div>';
-      let data;
-      try {
-        data = await api().accountsList();
-      } catch (err) {
-        picker.innerHTML = '<div class="ap-group-title">加载失败</div>';
-        return;
-      }
-      const groups = (data && data.groups) || [];
-      const unknown = (data && data.unknown) || [];
-      const hasAny = groups.length > 0 || unknown.length > 0;
-
-      let html = '';
-      for (const g of groups) {
-        html += '<div class="ap-group-title">' + escapeHtml(g.providerName) + '</div>';
-        for (const a of g.accounts) {
-          const isLast = a.id === g.lastProfileId;
-          html += '<div class="ap-item" data-profile-id="' + a.id + '">' +
-            '<span class="ap-name">' + escapeHtml(a.name) + '</span>' +
-            (isLast ? '<span class="ap-last">上次</span>' : '') +
-          '</div>';
-        }
-      }
-      if (unknown.length > 0) {
-        html += '<div class="ap-group-title">未选平台</div>';
-        for (const a of unknown) {
-          html += '<div class="ap-item" data-profile-id="' + a.id + '">' +
-            '<span class="ap-name">' + escapeHtml(a.name) + '</span>' +
-          '</div>';
-        }
-      }
-      if (!hasAny) {
-        html += '<div class="ap-group-title">暂无账号</div>';
-      }
-      html += '<div class="ap-sep"></div>';
-      html += '<div class="ap-item ap-new" id="ap-new-account">+ 新建账号</div>';
-      picker.innerHTML = html;
-
-      picker.querySelectorAll('.ap-item[data-profile-id]').forEach(el => {
-        el.addEventListener('click', async () => {
-          picker.classList.remove('show');
-          await api().tabsCreate({ profileId: el.dataset.profileId });
-        });
-      });
-      const newBtn = document.getElementById('ap-new-account');
-      if (newBtn) {
-        newBtn.addEventListener('click', async () => {
-          picker.classList.remove('show');
-          // 新建"未确定平台"账号，进去后选平台
-          await api().tabsCreate({});
-        });
-      }
-    }
-
-    function escapeHtml(s) {
-      return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
 
     if (api() && api().onTabsUpdated) {
       api().onTabsUpdated((data) => {

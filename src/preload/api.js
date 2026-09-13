@@ -46,6 +46,9 @@ let electronAPI = {
   accountsList: () => {
     return ipcRenderer.invoke('accounts-list');
   },
+  tabsCreateMenu: () => {
+    return ipcRenderer.invoke('tabs-create-menu');
+  },
   tabsSwitch: (tabId) => {
     return ipcRenderer.invoke('tabs-switch', { tabId });
   },
