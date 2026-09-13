@@ -1,11 +1,12 @@
 /**
- * 标签页管理器（Chromium 标签模型）
- * 单个 BrowserWindow（壳，承载标签栏）+ 多个 WebContentsView（每个标签一个页面）。
- * 每个标签绑定一个 profile（平台 + 账号），使用其独立 partition 持久化登录态。
+ * 标签页管理器（Chromium 标签模型，纯 WebContentsView 架构）
  *
- * 标签句柄（ctx.win）：为了让既有 ipc.js / session-store.js 无需大改，
- * 这里暴露一个"窗口代理"对象，转发 BrowserWindow 级别的操作，
- * 而 webContents 指向该标签自己的 WebContentsView.webContents。
+ * 窗口结构（BrowserWindow 仅作容器，不加载任何页面）：
+ *   contentView
+ *     ├─ 各标签内容视图 tabView_i  (bounds: 0, TAB_BAR_HEIGHT, W, H-40)
+ *     └─ 标签栏视图 tabBarView     (bounds: 0, 0, W, 40)  ← 最后添加，置顶
+ *
+ * 每个标签绑定一个 profile（平台 + 账号），使用独立 partition 持久化登录态。
  */
 const { BrowserWindow, WebContentsView } = require('electron');
 const path = require('path');
@@ -21,10 +22,12 @@ const windowState = require('./window');
 const TAB_BAR_HEIGHT = 40;
 
 // ========== 全局状态 ==========
-let shellWindow = null;           // 承载标签栏的壳窗口
+let shellWindow = null;           // 容器窗口
+let tabBarView = null;            // 标签栏视图（shell.html）
 let tabs = new Map();             // tabId -> tab 对象
+let tabOrder = [];                // tabId 顺序（支持拖动排序）
 let activeTabId = null;
-let sessionsToFlush = new Set();  // 需要 flush 的 session
+let sessionsToFlush = new Set();
 
 function getTabsFile() {
   return path.join(app.getPath('userData'), 'tabs.json');
@@ -46,12 +49,15 @@ function readTabsStore() {
   return { activeTabId: null, tabs: [] };
 }
 
+function getOrderedTabs() {
+  return tabOrder.map(id => tabs.get(id)).filter(Boolean);
+}
+
 function writeTabsStore() {
   try {
-    const ordered = getOrderedTabs();
     const store = {
       activeTabId,
-      tabs: ordered.map(t => ({
+      tabs: getOrderedTabs().map(t => ({
         tabId: t.tabId,
         profileId: t.profileId,
         providerId: t.providerId,
@@ -63,14 +69,49 @@ function writeTabsStore() {
   }
 }
 
-/**
- * 构造标签"窗口代理"：既兼容 ipc.js 对 win.webContents 的使用，
- * 也把窗口级操作转发到真正的壳窗口。
- */
+// ========== 布局 ==========
+function getContentSize() {
+  if (!shellWindow || shellWindow.isDestroyed()) return [0, 0];
+  return shellWindow.getContentSize();
+}
+
+function layoutAll() {
+  if (!shellWindow || shellWindow.isDestroyed()) return;
+  const [width, height] = getContentSize();
+
+  // 标签栏：顶部 40px
+  if (tabBarView) {
+    tabBarView.setBounds({ x: 0, y: 0, width, height: TAB_BAR_HEIGHT });
+  }
+
+  // 内容区：40px 以下
+  const contentBounds = {
+    x: 0,
+    y: TAB_BAR_HEIGHT,
+    width,
+    height: Math.max(0, height - TAB_BAR_HEIGHT),
+  };
+  const active = activeTabId ? tabs.get(activeTabId) : null;
+  for (const tab of tabs.values()) {
+    if (tab.closed) continue;
+    if (tab === active) {
+      tab.view.setVisible(true);
+      tab.view.setBounds(contentBounds);
+    } else {
+      tab.view.setVisible(false);
+    }
+  }
+
+  // 标签栏置顶（后加的在最上层；重新 add 会把视图移到顶层）
+  if (tabBarView) {
+    try { shellWindow.contentView.addChildView(tabBarView); } catch (_) {}
+  }
+}
+
+// ========== 标签句柄（兼容 ipc.js 对 win.webContents 的使用）==========
 function buildTabHandle(tab) {
-  const handle = {
+  return {
     id: tab.tabId,
-    // 关键：webContents 指向本标签自己的视图
     get webContents() { return tab.view.webContents; },
     get _nativeWindow() { return shellWindow; },
     isDestroyed() {
@@ -80,69 +121,31 @@ function buildTabHandle(tab) {
     isFocused() { return !!(shellWindow && !shellWindow.isDestroyed() && shellWindow.isFocused()); },
     flashFrame(flag) { if (shellWindow && !shellWindow.isDestroyed()) shellWindow.flashFrame(flag); },
     once(event, cb) { if (shellWindow && !shellWindow.isDestroyed()) shellWindow.once(event, cb); },
-    setTitle(title) { /* 单窗口模型下标题由 shell 统一管理，忽略 */ },
+    setTitle() {},
     getTitle() { return tab.title || ''; },
   };
-  return handle;
 }
 
-/**
- * 计算指定标签内容区的边界（标签栏下方占满剩余空间）
- */
-function computeViewBounds() {
-  if (!shellWindow || shellWindow.isDestroyed()) return { x: 0, y: 0, width: 0, height: 0 };
-  const [width, height] = shellWindow.getContentSize();
-  const bounds = {
-    x: 0,
-    y: TAB_BAR_HEIGHT,
-    width,
-    height: Math.max(0, height - TAB_BAR_HEIGHT),
-  };
-  console.log('[Tabs] computeViewBounds contentSize=' + width + 'x' + height + ' -> bounds=' + JSON.stringify(bounds));
-  return bounds;
-}
-
-/**
- * 把标签视图按当前激活状态摆放：激活的显示并置于顶层，其余隐藏。
- */
-function layoutViews() {
-  if (!shellWindow || shellWindow.isDestroyed()) return;
-  const bounds = computeViewBounds();
-  const active = activeTabId ? tabs.get(activeTabId) : null;
-  for (const tab of tabs.values()) {
-    if (tab.closed) continue;
-    if (tab.tabId === activeTabId) {
-      tab.view.setVisible(true);
-      tab.view.setBounds(bounds);
-    } else {
-      tab.view.setVisible(false);
-    }
-  }
-  // 仅在切换时把激活视图置顶，避免每次 resize 都重排
-  if (active && !active.closed) {
-    try { shellWindow.contentView.addChildView(active.view); } catch (_) {}
+// ========== 壳页面通信 ==========
+function notifyShell() {
+  if (tabBarView && !tabBarView.webContents.isDestroyed()) {
+    tabBarView.webContents.send('tabs-updated', {
+      activeTabId,
+      tabs: getOrderedTabs().map(t => ({
+        tabId: t.tabId,
+        title: t.title,
+        name: t.name,
+        profileId: t.profileId,
+        providerId: t.providerId,
+      })),
+    });
   }
 }
 
-/** 按插入顺序返回标签数组（Map 保持插入顺序；支持重排时用数组顺序） */
-let tabOrder = []; // tabId 顺序，用于拖动排序
-function getOrderedTabs() {
-  return tabOrder
-    .map(id => tabs.get(id))
-    .filter(Boolean);
-}
-
-function getTab(tabId) {
-  return tabs.get(tabId) || null;
-}
-
-function getActiveTab() {
-  return activeTabId ? tabs.get(activeTabId) || null : null;
-}
-
-function getAllTabs() {
-  return getOrderedTabs();
-}
+// ========== 标签操作 ==========
+function getTab(tabId) { return tabs.get(tabId) || null; }
+function getActiveTab() { return activeTabId ? tabs.get(activeTabId) || null : null; }
+function getAllTabs() { return getOrderedTabs(); }
 
 function getTabByProfileId(profileId) {
   for (const tab of tabs.values()) {
@@ -151,29 +154,6 @@ function getTabByProfileId(profileId) {
   return null;
 }
 
-/**
- * 通知壳页面刷新标签栏
- */
-function notifyShell() {
-  if (shellWindow && !shellWindow.isDestroyed()) {
-    shellWindow.webContents.send('tabs-updated', {
-      activeTabId,
-      tabs: getOrderedTabs().map(t => ({
-        tabId: t.tabId,
-        title: t.title,
-        profileId: t.profileId,
-        providerId: t.providerId,
-        name: t.name,
-      })),
-    });
-  }
-}
-
-/**
- * 创建标签
- * @param {object} profile profile 对象（含 id/providerId/partition/name）
- * @returns {object} tab
- */
 function createTab(profile) {
   if (!shellWindow || shellWindow.isDestroyed()) {
     throw new Error('壳窗口不存在，无法创建标签');
@@ -215,29 +195,25 @@ function createTab(profile) {
   tabOrder.push(tabId);
   sessionsToFlush.add(tab.session);
 
-  // 把视图挂到壳窗口（初始隐藏，switchTab 时显示）
+  // 挂到窗口（默认隐藏）
   try {
     shellWindow.contentView.addChildView(view);
     view.setVisible(false);
-    view.setBounds(computeViewBounds());
+    view.setBounds({ x: 0, y: TAB_BAR_HEIGHT, width: 0, height: 0 });
   } catch (err) {
     console.error('[Tabs] 挂载视图失败:', err.message);
   }
 
-  // 注册到全局上下文表，供 ipc.js 通过 event.sender 反查
   windowState.addContext(tab.handle, tab.profileId, tab.providerId, sessionStore);
 
-  // 渲染进程 console 转发 + 平台日志
   view.webContents.on('console-message', (_e, _level, message) => {
     try { console.log('[Renderer Console][' + tab.name + ']', message); } catch (_) {}
   });
 
-  // 统一的 UA
   const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
   view.webContents.setUserAgent(userAgent);
 
-  // 导航事件：交给 sessionStore 处理会话/目录绑定
   view.webContents.on('did-finish-load', () => {
     if (tab.closed) return;
     tab.sessionStore.tryRestoreSessionFromUrl(tab.handle);
@@ -258,24 +234,17 @@ function createTab(profile) {
   view.webContents.on('before-input-event', (_e, input) => {
     if (input.key === 'F12') view.webContents.toggleDevTools();
   });
-
-  // 打开新窗口（target=_blank 等）：在本应用内新开标签不方便，直接阻止并忽略
   view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
-  // 加载内容：平台已确定 → 首页；未确定 → 平台选择页
   if (tab.providerId) {
     view.webContents.loadURL(provider.homeUrl);
   } else {
     view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'platform-select.html'));
   }
 
-  // 记录为最后使用的账号
   profileManager.setLastActiveProfile(profileData.id);
-
-  // 激活新标签
   switchTab(tabId);
 
-  // 自动更新仅初始化一次
   const updater = require('./updater');
   if (getOrderedTabs().length === 1) {
     updater.initAutoUpdater(shellWindow);
@@ -287,33 +256,23 @@ function createTab(profile) {
   return tab;
 }
 
-/**
- * 切换激活标签
- */
 function switchTab(tabId) {
   const tab = tabs.get(tabId);
   if (!tab || tab.closed) return false;
   activeTabId = tabId;
-  // 同步全局活跃上下文（getMainContext / ipc 兜底会用到）
   windowState.setMainWindow(tab.handle);
-  layoutViews();
-  // 通知壳页面高亮
+  layoutAll();
   notifyShell();
-  // 让平台页面获得焦点
   try { tab.view.webContents.focus(); } catch (_) {}
   writeTabsStore();
   return true;
 }
 
-/**
- * 关闭标签（不删除 profile/账号，仅关闭界面，保留 cookie）
- */
 function closeTab(tabId) {
   const tab = tabs.get(tabId);
   if (!tab) return false;
   tab.closed = true;
 
-  // 从壳窗口移除视图并销毁
   try {
     if (shellWindow && !shellWindow.isDestroyed()) {
       shellWindow.contentView.removeChildView(tab.view);
@@ -329,21 +288,16 @@ function closeTab(tabId) {
   if (activeTabId === tabId) {
     const remaining = getOrderedTabs();
     activeTabId = remaining.length > 0 ? remaining[remaining.length - 1].tabId : null;
-    layoutViews();
+    layoutAll();
   }
-
   writeTabsStore();
   notifyShell();
   return true;
 }
 
-/**
- * 重排标签
- */
 function reorderTabs(orderedIds) {
   if (!Array.isArray(orderedIds)) return false;
   const valid = orderedIds.filter(id => tabs.has(id));
-  // 补齐未出现在列表中的标签
   for (const id of tabOrder) {
     if (!valid.includes(id)) valid.push(id);
   }
@@ -353,10 +307,6 @@ function reorderTabs(orderedIds) {
   return true;
 }
 
-/**
- * 在标签内切换平台（对应原 select-platform）：
- * 更新 profile 的 providerId/partition，然后重建该标签的 view。
- */
 function setTabProvider(tabId, providerId) {
   const tab = tabs.get(tabId);
   if (!tab) return { success: false, error: '标签不存在' };
@@ -366,7 +316,6 @@ function setTabProvider(tabId, providerId) {
   const updatedProfile = profileManager.updateProfileProvider(tab.profileId, providerId);
   if (!updatedProfile) return { success: false, error: '更新账号失败' };
 
-  // 重建标签（partition 变更必须重建 view）
   const index = tabOrder.indexOf(tabId);
   closeTab(tabId);
   const newTab = createTab(updatedProfile);
@@ -391,15 +340,19 @@ function setTabName(tabId, name) {
   return updated;
 }
 
-/**
- * 创建壳窗口（承载标签栏），并恢复上次的标签布局
- */
+// ========== 创建壳窗口 ==========
 function createShellWindow() {
   shellWindow = new BrowserWindow({
     width: 1280,
     height: 900,
     title: 'Estrix Code Pro',
     backgroundColor: '#0d0f1a',
+    // 容器窗口本身不加载页面，只承载 WebContentsView
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+
+  // 标签栏视图
+  tabBarView = new WebContentsView({
     webPreferences: {
       preload: path.join(__dirname, '..', '..', 'preload.js'),
       contextIsolation: true,
@@ -408,26 +361,32 @@ function createShellWindow() {
       additionalArguments: ['--estrix-user-data=' + app.getPath('userData')],
     },
   });
+  shellWindow.contentView.addChildView(tabBarView);
+  tabBarView.webContents.loadFile(path.join(__dirname, '..', 'ui', 'shell.html'));
 
-  shellWindow.loadFile(path.join(__dirname, '..', 'ui', 'shell.html'));
+  tabBarView.webContents.on('did-finish-load', () => {
+    console.log('[Tabs] 壳页面加载完成，开始恢复标签');
+    restoreTabs();
+    notifyShell();
+  });
+
+  shellWindow.on('resize', () => layoutAll());
   shellWindow.maximize();
-  console.log('[Tabs] 壳窗口已创建 id=' + shellWindow.id);
-
-  shellWindow.on('resize', () => layoutViews());
+  layoutAll();
 
   shellWindow.on('closed', () => {
     shellWindow = null;
+    tabBarView = null;
     tabs.clear();
     tabOrder = [];
     activeTabId = null;
   });
 
+  console.log('[Tabs] 壳窗口已创建 id=' + shellWindow.id);
   return shellWindow;
 }
 
-function getShellWindow() {
-  return shellWindow;
-}
+function getShellWindow() { return shellWindow; }
 
 async function flushAllSessions() {
   const promises = [];
@@ -439,10 +398,6 @@ async function flushAllSessions() {
   await Promise.all(promises);
 }
 
-/**
- * 启动时恢复标签布局：读取 tabs.json，重建标签。
- * 若无历史标签，则打开上次使用的账号（或创建默认）。
- */
 function restoreTabs() {
   const store = readTabsStore();
   const profiles = profileManager.readProfiles();
@@ -459,7 +414,6 @@ function restoreTabs() {
     return;
   }
 
-  // 无历史：回退到"上次使用账号 / 第一个账号 / 新建默认"
   const lastActive = profileManager.getLastActiveProfile();
   if (lastActive) {
     createTab(lastActive);

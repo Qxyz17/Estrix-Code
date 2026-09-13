@@ -477,13 +477,7 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(() => {
     setupAppMenu();
     tabManager.createShellWindow();
-    // 壳页面加载完成后恢复标签布局
-    const shell = tabManager.getShellWindow();
-    shell.webContents.on('did-finish-load', () => {
-      console.log('[Tabs] 壳页面加载完成，开始恢复标签');
-      tabManager.restoreTabs();
-      tabManager.notifyShell();
-    });
+    // 标签恢复逻辑在 tab-manager 内部（标签栏视图加载完成后）完成
 
     mcpClient.connectEnabledServers().catch(err => {
       console.error('[MCP] 初始化连接失败:', err.message);
@@ -507,10 +501,5 @@ app.on('before-quit', (event) => {
 app.on('activate', () => {
   if (!tabManager.getShellWindow()) {
     tabManager.createShellWindow();
-    const shell = tabManager.getShellWindow();
-    shell.webContents.on('did-finish-load', () => {
-      tabManager.restoreTabs();
-      tabManager.notifyShell();
-    });
   }
 });
