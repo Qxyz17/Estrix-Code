@@ -5,9 +5,10 @@
 const deepseek = require('./deepseek');
 const claude = require('./claude');
 const chatgpt = require('./chatgpt');
+const glm = require('./glm');
 const { loadCustomProviders } = require('./custom/loader');
 
-const builtinProviders = [deepseek, claude, chatgpt];
+const builtinProviders = [deepseek, claude, chatgpt, glm];
 
 function getAllProviders() {
   return [...builtinProviders, ...loadCustomProviders()];

@@ -41,6 +41,7 @@ if (useIntercept) {
       deepseek: () => require('../interceptor/deepseek-hook').deepseekHookSource(),
       claude: () => require('../interceptor/claude-hook').claudeHookSource(),
       chatgpt: () => require('../interceptor/chatgpt-hook').chatgptHookSource(),
+      glm: () => require('../interceptor/glm-hook').glmHookSource(),
     };
     const getSource = hookByProvider[currentProvider.id];
     if (getSource) {

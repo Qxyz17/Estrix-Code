@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.3.0-alpha] - 2026-09-19
+
+### Added
+- **新增 GLM（Z.ai）平台支持**：通过拦截 `/api/v2/chat/completions` 的 SSE 流式响应，提取 AI 回复文本
+  - 支持 `phase: "answer"` 正文提取（丢弃 `phase: "thinking"` 思考过程）
+  - 以 `data.done === true` 作为回复完成信号
+- GLM 平台图标
+
+
 ## [0.2.4-alpha] - 2026-09-13
 
 ### Fixed
