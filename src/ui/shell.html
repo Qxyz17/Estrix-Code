@@ -7,6 +7,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* 深色（默认） */
     :root {
       --bar-bg: #14162a;
       --tab-bg: #1c1f38;
@@ -16,12 +17,28 @@
       --border: rgba(255, 255, 255, 0.08);
       --primary: #8b93ff;
       --danger: #ff6b7a;
+      --app-bg: #0d0f1a;
+    }
+
+    /* 浅色：跟随系统 */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bar-bg: #f2f3f7;
+        --tab-bg: #e8eaf2;
+        --tab-active-bg: #ffffff;
+        --tab-text: #5a5f7a;
+        --tab-text-active: #1a1c2e;
+        --border: rgba(0, 0, 0, 0.10);
+        --primary: #6d76ff;
+        --danger: #e5484d;
+        --app-bg: #ffffff;
+      }
     }
 
     html, body {
       height: 100%;
       overflow: hidden;
-      background: #0d0f1a;
+      background: var(--app-bg);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       user-select: none;
     }
@@ -115,7 +132,7 @@
     /* 内容区由 WebContentsView 覆盖，这里只留空 */
     #content-placeholder {
       flex: 1;
-      background: #0d0f1a;
+      background: var(--app-bg);
     }
 
     body { display: flex; flex-direction: column; }

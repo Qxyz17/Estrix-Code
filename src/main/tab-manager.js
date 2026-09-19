@@ -347,13 +347,18 @@ function getThemedIcon() {
   return path.join(__dirname, '..', 'ui', name);
 }
 
-/** 应用当前主题图标到壳窗口 */
+/** 应用当前主题图标 + 背景色到壳窗口 */
 function applyThemedIcon() {
   if (!shellWindow || shellWindow.isDestroyed()) return;
   try {
     shellWindow.setIcon(getThemedIcon());
   } catch (err) {
     console.error('[Tabs] 设置窗口图标失败:', err.message);
+  }
+  try {
+    shellWindow.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#0d0f1a' : '#ffffff');
+  } catch (err) {
+    console.error('[Tabs] 设置窗口背景色失败:', err.message);
   }
 }
 
@@ -362,7 +367,7 @@ function createShellWindow() {
     width: 1280,
     height: 900,
     title: 'Estrix Code Pro',
-    backgroundColor: '#0d0f1a',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0d0f1a' : '#ffffff',
     // 容器窗口本身不加载页面，只承载 WebContentsView
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
