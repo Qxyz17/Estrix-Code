@@ -19,6 +19,7 @@ const { TodoWriteTool } = require('./TodoWriteTool');
 const { BashTool } = require('./BashTool');
 const { PwshTool } = require('./PwshTool');
 const { FileDeleteTool } = require('./FileDeleteTool');
+const { MkdirTool } = require('./MkdirTool');
 const { WebFetchTool } = require('./WebFetchTool');
 const { MySQLTool } = require('./MySQLTool');
 const { OpenBrowserWindowTool } = require('./OpenBrowserWindowTool');
@@ -45,6 +46,7 @@ registry.register(new TodoWriteTool());
 registry.register(new BashTool());
 registry.register(new PwshTool());
 registry.register(new FileDeleteTool());
+registry.register(new MkdirTool());
 registry.register(new WebFetchTool());
 registry.register(new MySQLTool());
 registry.register(new OpenBrowserWindowTool());
@@ -72,6 +74,7 @@ module.exports = {
   BashTool,
   PwshTool,
   FileDeleteTool,
+  MkdirTool,
   WebFetchTool,
   // 便捷方法
   getAllTools: () => registry,

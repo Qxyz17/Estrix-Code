@@ -37,6 +37,10 @@ Partitions/
 *.blockmap
 latest*.yml
 
+# Rust / Tauri
+native/src-tauri/target/
+native/src-tauri/gen/schemas/
+
 # Temp
 *.tmp
 temp/
