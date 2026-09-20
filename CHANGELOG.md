@@ -1,6 +1,18 @@
 # Changelog
 
 
+## [0.3.1-alpha] - 2026-09-20
+
+### Changed
+- **GLM 平台图标**改用 Z.ai 官方 logo
+- **应用图标**统一为黑底白字 `>_`（含深色/浅色主题）
+- **标签栏跟随系统明暗**（`prefers-color-scheme`）
+
+### Added
+- **mkdir 工具**：创建目录（支持递归）
+- **Tauri + Rust 原生版骨架**（`native/`）：8.2MB 可执行文件
+
+
 ## [0.3.0-alpha] - 2026-09-19
 
 ### Added
