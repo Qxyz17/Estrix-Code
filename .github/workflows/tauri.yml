@@ -1,0 +1,88 @@
+name: Build Tauri (Rust) App
+
+# 与 release.yml 并行：tag v* 时构建 Tauri 原生版，作为额外附件上传到同一 Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # 允许手动触发测试
+
+permissions:
+  contents: write
+
+jobs:
+  build-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: ''
+            args: ''
+          - os: macos-latest
+            target: 'aarch64-apple-darwin'
+            args: '--target aarch64-apple-darwin'
+          - os: macos-latest
+            target: 'x86_64-apple-darwin'
+            args: '--target x86_64-apple-darwin'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: native/src-tauri -> target
+
+      - name: Sync version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "Syncing Tauri version to $VERSION"
+          # 写入 tauri.conf.json 和 Cargo.toml 的版本号
+          node -e "const fs=require('fs');const p='native/src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version='$VERSION';fs.writeFileSync(p,JSON.stringify(c,null,2));"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" native/src-tauri/Cargo.toml
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build Tauri app
+        working-directory: native
+        run: cargo tauri build ${{ matrix.args }}
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            native/src-tauri/target/release/bundle/**/*.exe
+            native/src-tauri/target/release/bundle/**/*.msi
+            native/src-tauri/target/release/bundle/**/*.dmg
+            native/src-tauri/target/release/bundle/**/*.app.tar.gz
+            native/src-tauri/target/*/release/bundle/**/*.dmg
+            native/src-tauri/target/*/release/bundle/**/*.app.tar.gz
+          fail_on_unmatched_files: false
+
+      - name: Upload artifact (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-${{ matrix.os }}-${{ matrix.target || 'default' }}
+          path: |
+            native/src-tauri/target/release/bundle/
+            native/src-tauri/target/*/release/bundle/
+          if-no-files-found: warn
