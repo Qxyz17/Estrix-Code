@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/remote-schema.json",
+  "identifier": "platform-remote",
+  "description": "允许 AI 平台页面（DeepSeek/Claude）通过注入脚本调用 execute_shell 命令",
+  "windows": ["platform-*"],
+  "permissions": [
+    "core:default",
+    "core:event:default"
+  ],
+  "remote": {
+    "urls": [
+      "https://chat.deepseek.com/*",
+      "https://claude.ai/*"
+    ]
+  }
+}
