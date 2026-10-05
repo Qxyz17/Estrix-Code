@@ -18,6 +18,8 @@ jobs:
             command: build:win
           - os: macos-latest
             command: build:mac
+          - os: ubuntu-latest
+            command: build:linux
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -33,6 +35,10 @@ jobs:
         run: node scripts/sync-version.js
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Install Linux packaging deps
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot libarchive-tools rpm
 
       - name: Install dependencies
         run: npm ci

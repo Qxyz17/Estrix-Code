@@ -4,6 +4,8 @@
 ## [0.3.5-alpha] - 2026-10-06
 
 ### Added
+- **重新支持 Linux 构建**：AppImage / deb / rpm 三种格式
+
 - **本地 OpenAI 兼容 API 服务器**（`http://127.0.0.1:11434`）：
   - `POST /v1/chat/completions` —— 通过 API 把消息发到指定标签页的 AI
   - `GET /v1/models` —— 列出可用标签页（作为 model）
