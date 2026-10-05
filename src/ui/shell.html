@@ -166,7 +166,17 @@
 
         const title = document.createElement('span');
         title.className = 'tab-title';
-        title.textContent = t.name || t.title || '未命名';
+        const accountName = t.name || '未命名';
+        // 从页面标题提取"对话名"：去掉平台后缀（如 " - DeepSeek"），过滤平台默认标题
+        const rawTitle = (t.title || '').trim();
+        const platformSuffixes = [' - DeepSeek', ' - ChatGPT', ' - Claude', ' - GLM', ' - Z.ai'];
+        let convName = rawTitle;
+        for (const suf of platformSuffixes) {
+          if (convName.endsWith(suf)) { convName = convName.slice(0, -suf.length).trim(); break; }
+        }
+        const defaultTitles = ['DeepSeek', 'ChatGPT', 'Claude', 'GLM', 'Z.ai', 'Into the Unknown'];
+        if (!convName || defaultTitles.includes(convName) || convName === accountName) convName = '';
+        title.textContent = convName ? accountName + '-' + convName : accountName;
         title.title = title.textContent;
         el.appendChild(title);
 

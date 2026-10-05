@@ -104,6 +104,23 @@ async function sendToChat(msg, tag, fixedDelay, afterSent) {
 function sendMessageToChat(msg, tag) {
   return sendToChat(msg, tag);
 }
+
+// ========== 本地 API 请求队列 ==========
+// 记录"待响应的 API 请求"（requestId）。API 模式下发消息后 push，
+// 拦截器拿到回复时 shift 并上报主进程。
+const apiPendingRequests = [];
+
+function pushApiRequest(requestId) {
+  apiPendingRequests.push(requestId);
+}
+
+function shiftApiRequest() {
+  return apiPendingRequests.shift() || null;
+}
+
+function hasApiRequest() {
+  return apiPendingRequests.length > 0;
+}
 /**
  * 将 JSON 工具执行结果发送回 DeepSeek 聊天，让 AI 看到结果并继续工作
  */
@@ -320,6 +337,16 @@ ipcRenderer.on('initial-prompt', (_event, content) => {
     }
   }
 });
+
+// 本地 API 请求：填入输入框并发送，记录 requestId 等待回复
+ipcRenderer.on('estrix-api-request', (_event, data) => {
+  const prompt = data && data.prompt;
+  const requestId = data && data.requestId;
+  if (!prompt || !requestId) return;
+  console.log('[Estrix API] 收到 API 请求 requestId=' + requestId + ', 长度=' + prompt.length);
+  pushApiRequest(requestId);
+  sendToChat(prompt, 'API:' + requestId);
+});
 }
 
 
@@ -332,6 +359,9 @@ module.exports = {
   sendCombinedJsResultsToChat,
   findInputArea,
   isInputVisible,
+  pushApiRequest,
+  shiftApiRequest,
+  hasApiRequest,
   sendInitialPromptToInput,
   waitForInitialPromptAndSend,
   triggerSend,

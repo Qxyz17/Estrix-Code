@@ -468,6 +468,12 @@ ipcMain.handle('disable-mcp-server', async (_event, { name } = {}) => {
 });
 ipcMain.handle('get-mcp-tools', async () => ({ success: true, tools: mcpClient.getMcpToolList() }));
 
+// ========== Windows 通知身份 ==========
+// 必须在 whenReady 前设置，否则 Windows 通知标题显示为 "electron.app.Electron"
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.estrix.estrix-code');
+}
+
 // ========== 单实例锁 ==========
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -488,6 +494,28 @@ if (!gotSingleInstanceLock) {
 
     mcpClient.connectEnabledServers().catch(err => {
       console.error('[MCP] 初始化连接失败:', err.message);
+    });
+
+    // 启动本地 API 服务器（OpenAI 兼容）
+    const apiServer = require('./api-server');
+    const apiConfig = require('./api-config');
+    apiServer.setHandlers({
+      getApiKey: () => apiConfig.getApiKey(),
+      listTabs: () => tabManager.getOrderedTabs().map(t => ({
+        tabId: t.tabId, providerId: t.providerId, name: t.name, title: t.title,
+      })),
+      sendToTab: (tabId, prompt, requestId) => {
+        const tab = tabManager.getTab(tabId);
+        if (!tab || tab.closed) throw new Error('标签页不存在');
+        tab.view.webContents.send('estrix-api-request', { prompt, requestId });
+      },
+    });
+    apiServer.start();
+
+    // 标签页上报的 AI 回复 → 转给 API 服务器
+    ipcMain.on('estrix-api-response', (_event, data) => {
+      if (!data || !data.requestId) return;
+      apiServer.onTabResponse(data.requestId, data.text || '');
     });
   });
 }

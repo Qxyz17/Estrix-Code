@@ -6,7 +6,7 @@
 const { extractJsToolBlocks, BT } = require('./js-detector');
 const { tryParseToolCall } = require('./tool-parser');
 const { handleToolCall, handleJsToolScript } = require('./observer');
-const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat } = require('./chat-input');
+const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat, shiftApiRequest, hasApiRequest } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
 
 const MAX_JS_RETRY = 3;
@@ -57,6 +57,18 @@ async function processInterceptedResponse(text) {
   lastProcessedText = raw;
 
   console.log('[Estrix Code][拦截] 收到完整回复，长度=' + raw.length);
+
+  // 0. API 模式：如果队列里有待响应的 API 请求，直接把回复上报主进程
+  if (hasApiRequest()) {
+    const requestId = shiftApiRequest();
+    console.log('[Estrix API] 回复到达，上报 requestId=' + requestId);
+    try {
+      window.electronAPI.reportApiResponse(requestId, raw);
+    } catch (e) {
+      console.error('[Estrix API] 上报失败:', e.message);
+    }
+    return;
+  }
 
   // 1. 优先检测 JS 工具代码块（estrix / js 代码块）
   const jsBlocks = extractJsToolBlocks(raw);

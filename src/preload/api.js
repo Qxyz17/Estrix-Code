@@ -97,6 +97,11 @@ let electronAPI = {
   getMcpTools: () => {
     return ipcRenderer.invoke('get-mcp-tools');
   },
+  // ========== 本地 API 服务器（标签页上报回复）==========
+  reportApiResponse: (requestId, text) => {
+    return ipcRenderer.send('estrix-api-response', { requestId, text });
+  },
+
   // ========== 平台相关 API ==========
   listProviders: () => {
     return ipcRenderer.invoke('list-providers');
