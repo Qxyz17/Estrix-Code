@@ -469,8 +469,8 @@ function setTabName(tabId, name) {
 // ========== 创建壳窗口 ==========
 /** 根据系统主题选择窗口图标（深色→白色图标，浅色→黑色图标） */
 function getThemedIcon() {
-  const name = nativeTheme.shouldUseDarkColors ? 'icon-dark.png' : 'icon-light.png';
-  return path.join(__dirname, '..', 'ui', name);
+  // 统一图标（黑底白 >_），不再区分明暗
+  return path.join(__dirname, '..', 'ui', 'icon.png');
 }
 
 /** 应用当前主题图标 + 背景色到壳窗口 */
