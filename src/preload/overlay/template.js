@@ -153,7 +153,7 @@ const OVERLAY_CSS = [
 '.estrix-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }',
 '.estrix-task-status { display: inline-flex; align-items: center; gap: 5px; color: var(--ck-green); font-size: 11px; font-weight: 500; }',
 '/* 强制网页也用 HarmonyOS 字体 */',
-'body, body *:not(code):not(pre):not([class*="code"]):not([class*="mono"]) { font-family: "HarmonyOS Sans SC", -apple-system, "Segoe UI", "PingFang SC", sans-serif !important; }',
+'html body, html body *:not(code):not(pre):not([class*="code"]):not([class*="mono"]), html body input, html body textarea, html body button, html body select, html body [contenteditable] { font-family: "HarmonyOS Sans SC", -apple-system, "Segoe UI", "PingFang SC", sans-serif !important; }',
 '@keyframes estrix-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }',
 ].join('\n');
 

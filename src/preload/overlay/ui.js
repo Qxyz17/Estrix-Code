@@ -26,6 +26,37 @@ function injectOverlay() {
   container.id = 'estrix-root';
   container.innerHTML = OVERLAY_HTML;
   document.body.appendChild(container);
+  // 强制全局 HarmonyOS 字体（内联样式优先级最高）
+  try {
+    const fontStack = '"HarmonyOS Sans SC", -apple-system, "Segoe UI", "PingFang SC", sans-serif';
+    const forceFont = (el) => {
+      if (!el || el.nodeType !== 1) return;
+      const tag = el.tagName;
+      if (tag === 'CODE' || tag === 'PRE') return;
+      const cls = (el.className && typeof el.className === 'string') ? el.className : '';
+      if (/\b(code|mono)\b/i.test(cls)) return;
+      if (el.style && el.style.fontFamily === fontStack) return;
+      try { el.style.setProperty('font-family', fontStack, 'important'); } catch (_) {}
+    };
+    forceFont(document.body);
+    document.querySelectorAll('input, textarea, button, select, [contenteditable]').forEach(forceFont);
+    // 动态元素也强制
+    const obs = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.type === 'attributes' && m.attributeName === 'style') { forceFont(m.target); continue; }
+        for (const node of m.addedNodes) {
+          if (node.nodeType !== 1) continue;
+          forceFont(node);
+          if (node.querySelectorAll) {
+            node.querySelectorAll('*').forEach(forceFont);
+          }
+        }
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+  } catch (e) {
+    console.error('[Estrix] 强制字体失败:', e.message);
+  }
 }
 
 // ========== 覆盖层逻辑 ==========
