@@ -70,18 +70,29 @@ function registerIpcHandlers() {
     const store = ctx ? ctx.sessionStore : null;
     const selectedDir = store ? store.state.selectedProjectDir : null;
 
-    const dangerWarning = isDangerous(trimmed) ? '\n\n⚠️ 警告：此命令可能存在风险，请谨慎确认！' : '';
-    const result = await dialog.showMessageBox(win, {
-      type: isDangerous(trimmed) ? 'warning' : 'question',
-      buttons: ['取消', '确认执行'],
-      defaultId: 0,
-      cancelId: 0,
-      title: '确认执行命令',
-      message: '将执行以下命令：',
-      detail: trimmed + dangerWarning,
-    });
-    if (result.response !== 1) {
-      return { id, success: false, error: '用户取消了执行', canceled: true };
+    // 安全策略：strict（全确认）/ default（危险才确认）/ bypass（全放行）
+    let level = 'default';
+    try {
+      const appSettings = require('./app-settings');
+      level = (appSettings.readSettings().security || {}).level || 'default';
+    } catch (_) {}
+    const dangerous = isDangerous(trimmed);
+    const needConfirm = level === 'strict' || (level === 'default' && dangerous);
+
+    if (needConfirm) {
+      const dangerWarning = dangerous ? '\n\n⚠️ 警告：此命令可能存在风险，请谨慎确认！' : '';
+      const result = await dialog.showMessageBox(win, {
+        type: dangerous ? 'warning' : 'question',
+        buttons: ['取消', '确认执行'],
+        defaultId: 0,
+        cancelId: 0,
+        title: '确认执行命令',
+        message: '将执行以下命令：',
+        detail: trimmed + dangerWarning,
+      });
+      if (result.response !== 1) {
+        return { id, success: false, error: '用户取消了执行', canceled: true };
+      }
     }
     return new Promise((resolve) => {
       const child = exec(

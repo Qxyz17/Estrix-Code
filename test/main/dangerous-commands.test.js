@@ -36,3 +36,28 @@ test('isDangerous 识别安全命令', () => {
 test('isDangerous 忽略首尾空白', () => {
   assert.strictEqual(isDangerous('  shutdown /s  '), true);
 });
+
+test('isDangerous 覆盖 pwsh 危险命令', () => {
+  const pwshDangerous = [
+    'Stop-Process -Name app',
+    'Remove-Item -Recurse -Force C:\\temp',
+    'Restart-Computer',
+    'Stop-Computer',
+  ];
+  for (const cmd of pwshDangerous) {
+    assert.strictEqual(isDangerous(cmd), true, cmd);
+  }
+});
+
+test('isDangerous 覆盖 bash 危险命令', () => {
+  const bashDangerous = [
+    'rm -rf /tmp/x',
+    'mkfs.ext4 /dev/sda1',
+    'dd if=/dev/zero of=/dev/sda',
+    'chmod -R 777 /',
+    'git push origin main --force',
+  ];
+  for (const cmd of bashDangerous) {
+    assert.strictEqual(isDangerous(cmd), true, cmd);
+  }
+});
