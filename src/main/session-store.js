@@ -35,15 +35,23 @@ function createSessionStore(profileId, storeDir, windowState) {
     }
   }
 
+  // 内存缓存（避免每次读文件；写时同步更新）
+  let cache = null;
+
+  function getStore() {
+    if (cache === null) cache = readSessionStore();
+    return cache;
+  }
+
   function getProjectDirBySessionId(sessionId) {
     if (!sessionId) return null;
-    const store = readSessionStore();
-    return store[sessionId] || null;
+    return getStore()[sessionId] || null;
   }
 
   function saveSessionDirMapping(sessionId, projectDir) {
     if (!sessionId) return;
-    const store = readSessionStore();
+    const store = getStore();
+    if (store[sessionId] === projectDir) return; // 无变化，不写
     store[sessionId] = projectDir;
     writeSessionStore(store);
   }

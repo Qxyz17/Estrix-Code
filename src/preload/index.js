@@ -8,11 +8,11 @@ console.log('[Estrix Code] Preload script 开始执行');
 // 暴露 electronAPI 到渲染进程（contextBridge + window 兜底）
 require('./api');
 
-// 壳页面（标签栏 shell.html）：只需要 electronAPI，不注入平台扩展 UI/拦截器
+// 壳页面（shell.html / settings.html）：只需要 electronAPI，不注入平台扩展 UI/拦截器
 const isShellPage = typeof window !== 'undefined' &&
-  window.location && /shell\.html$/i.test(window.location.pathname || '');
+  window.location && /(shell|settings)\.html$/i.test(window.location.pathname || '');
 if (isShellPage) {
-  console.log('[Estrix Code] 壳页面，跳过平台扩展初始化');
+  console.log('[Estrix Code] 壳/设置页面，跳过平台扩展初始化');
   // 提前结束，避免注入悬浮球/覆盖层等
   module.exports = {};
 } else {
