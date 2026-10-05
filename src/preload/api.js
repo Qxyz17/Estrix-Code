@@ -97,6 +97,13 @@ let electronAPI = {
   getMcpTools: () => {
     return ipcRenderer.invoke('get-mcp-tools');
   },
+  // ========== 应用设置 ==========
+  openSettingsTab: () => ipcRenderer.invoke('open-settings-tab'),
+  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
+  setAppSettings: (patch) => ipcRenderer.invoke('set-app-settings', patch),
+  getApiConfig: () => ipcRenderer.invoke('get-api-config'),
+  setApiConfig: (patch) => ipcRenderer.invoke('set-api-config', patch),
+
   // ========== 本地 API 服务器（标签页上报回复）==========
   reportApiResponse: (requestId, text) => {
     return ipcRenderer.send('estrix-api-response', { requestId, text });

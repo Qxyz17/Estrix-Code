@@ -249,17 +249,22 @@ function createTab(profile, restoreUrl) {
   });
   view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
-  // 恢复时优先用保存的 URL，否则加载平台首页
-  const startUrl = (restoreUrl && typeof restoreUrl === 'string' && /^https?:\/\//i.test(restoreUrl))
-    ? restoreUrl
-    : null;
-  if (startUrl) {
-    tab.restoreUrl = startUrl;
-    view.webContents.loadURL(startUrl);
-  } else if (tab.providerId) {
-    view.webContents.loadURL(provider.homeUrl);
+  // 设置标签：加载本地设置页，不绑 profile
+  if (tab.providerId === '__settings__') {
+    view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'settings.html'));
   } else {
-    view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'platform-select.html'));
+    // 恢复时优先用保存的 URL，否则加载平台首页
+    const startUrl = (restoreUrl && typeof restoreUrl === 'string' && /^https?:\/\//i.test(restoreUrl))
+      ? restoreUrl
+      : null;
+    if (startUrl) {
+      tab.restoreUrl = startUrl;
+      view.webContents.loadURL(startUrl);
+    } else if (tab.providerId) {
+      view.webContents.loadURL(provider.homeUrl);
+    } else {
+      view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'platform-select.html'));
+    }
   }
 
   profileManager.setLastActiveProfile(profileData.id);
@@ -273,6 +278,58 @@ function createTab(profile, restoreUrl) {
   writeTabsStore();
   notifyShell();
   console.log('[Tabs] 标签已创建 tabId=' + tabId + ' provider=' + (tab.providerId || '(未确定)') + ' name=' + tab.name);
+  return tab;
+}
+
+/** 打开"设置"标签（特殊标签，不绑 profile、不持久化） */
+function openSettingsTab() {
+  // 已存在则切过去
+  for (const tab of tabs.values()) {
+    if (tab.providerId === '__settings__' && !tab.closed) {
+      switchTab(tab.tabId);
+      return tab;
+    }
+  }
+  if (!shellWindow || shellWindow.isDestroyed()) return null;
+  const storeDir = app.getPath('userData');
+  const sessionStore = createSessionStore('__settings__', storeDir, windowState);
+  const tabId = 'settings-' + Date.now();
+  const view = new WebContentsView({
+    webPreferences: {
+      preload: path.join(__dirname, '..', '..', 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      backgroundThrottling: false,
+      additionalArguments: ['--estrix-user-data=' + storeDir],
+    },
+  });
+  const tab = {
+    tabId,
+    view,
+    unloaded: false,
+    lastActiveTime: Date.now(),
+    profileId: '__settings__',
+    providerId: '__settings__',
+    name: '设置',
+    title: '设置',
+    sessionStore,
+    closed: false,
+    session: view.webContents.session,
+    handle: null,
+  };
+  tab.handle = buildTabHandle(tab);
+  tabs.set(tabId, tab);
+  tabOrder.push(tabId);
+  try {
+    shellWindow.contentView.addChildView(view);
+    view.setVisible(false);
+    view.setBounds({ x: 0, y: TAB_BAR_HEIGHT, width: 0, height: 0 });
+  } catch (err) { console.error('[Tabs] 挂载设置视图失败:', err.message); }
+  windowState.addContext(tab.handle, tab.profileId, tab.providerId, sessionStore);
+  view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'settings.html'));
+  switchTab(tabId);
+  notifyShell();
   return tab;
 }
 
@@ -530,6 +587,7 @@ module.exports = {
   createTab,
   closeTab,
   switchTab,
+  openSettingsTab,
   startIdleWatcher,
   reorderTabs,
   setTabProvider,

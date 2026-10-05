@@ -454,6 +454,12 @@ function bindEvents() {
     showToast('延迟设置已保存：' + min + ' - ' + max + ' ms', 3000);
   });
 
+  // 打开设置（跳转到设置标签）
+  const openSettingsBtn = document.getElementById('estrix-btn-open-settings');
+  openSettingsBtn?.addEventListener('click', () => {
+    try { window.electronAPI.openSettingsTab && window.electronAPI.openSettingsTab(); } catch (_) {}
+  });
+
   // 悬浮球点击切换面板显隐
   const statusBadge = document.getElementById('estrix-status-badge');
   statusBadge?.addEventListener('click', () => {

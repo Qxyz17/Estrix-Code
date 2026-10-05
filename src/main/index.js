@@ -89,11 +89,48 @@ function setupAppMenu() {
       ]
     },
     {
+      label: '设置',
+      submenu: [
+        {
+          label: '打开设置',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => { tabManager.openSettingsTab(); }
+        }
+      ]
+    },
+    {
       label: '帮助',
       submenu: [
         { label: '检查更新', click: () => updater.checkForUpdates() },
         { type: 'separator' },
-        { role: 'about', label: '关于 Estrix Code' }
+        {
+          label: '关于 Estrix Code',
+          click: () => {
+            const { dialog, shell } = require('electron');
+            const pkg = require('../../package.json');
+            const repo = 'https://github.com/Qxyz17/Estrix-Code';
+            dialog.showMessageBox({
+              type: 'info',
+              title: '关于 Estrix Code',
+              message: 'Estrix Code  v' + pkg.version,
+              detail: [
+                '多平台 AI 桌面应用',
+                '内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行',
+                '',
+                '作者：Estrix Code Contributors',
+                '许可：GPL-3.0',
+                '仓库：' + repo,
+                '',
+                '© 2026 Estrix Code Contributors',
+              ].join('\n'),
+              buttons: ['打开仓库', '确定'],
+              defaultId: 1,
+              cancelId: 1,
+            }).then((res) => {
+              if (res.response === 0) shell.openExternal(repo);
+            });
+          }
+        }
       ]
     }
   ];
@@ -369,6 +406,43 @@ ipcMain.handle('replace-provider', async (_event, { providerId } = {}) => {
 // ========== MCP 相关 IPC ==========
 const mcpConfig = require('./mcp-config');
 const mcpClient = require('./mcp-client');
+
+// ========== 应用设置 IPC（settings.json）==========
+ipcMain.handle('open-settings-tab', async () => {
+  try { tabManager.openSettingsTab(); return { success: true }; }
+  catch (e) { return { success: false, error: e.message }; }
+});
+ipcMain.handle('get-app-settings', async () => {
+  try { return { success: true, settings: require('./app-settings').readSettings() }; }
+  catch (e) { return { success: false, error: e.message }; }
+});
+ipcMain.handle('set-app-settings', async (_e, patch = {}) => {
+  try {
+    const appSettings = require('./app-settings');
+    const cur = appSettings.readSettings();
+    const next = {
+      ...cur, ...patch,
+      idleUnload: { ...cur.idleUnload, ...(patch.idleUnload || {}) },
+      security: { ...cur.security, ...(patch.security || {}) },
+    };
+    appSettings.writeSettings(next);
+    return { success: true, settings: next };
+  } catch (e) { return { success: false, error: e.message }; }
+});
+// API 配置
+ipcMain.handle('get-api-config', async () => {
+  try { return { success: true, config: require('./api-config').readConfig() }; }
+  catch (e) { return { success: false, error: e.message }; }
+});
+ipcMain.handle('set-api-config', async (_e, patch = {}) => {
+  try {
+    const apiConfig = require('./api-config');
+    const cur = apiConfig.readConfig();
+    const next = { ...cur, ...patch };
+    apiConfig.writeConfig(next);
+    return { success: true, config: next };
+  } catch (e) { return { success: false, error: e.message }; }
+});
 
 ipcMain.handle('list-mcp-servers', async () => {
   const servers = mcpConfig.getServers();
