@@ -74,7 +74,7 @@ jobs:
             echo "";
             echo "## ✨ 本次更新";
             echo "";
-            cat changelog-section.md;
+            sed 's/^### /#### /' changelog-section.md;
             echo "";
             echo "## 📥 下载安装";
             echo "";
