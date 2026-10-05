@@ -87,6 +87,9 @@ jobs:
                   *.exe)          echo "| **Windows** | \`$f\` | 安装版（推荐），双击安装 |" ;;
                   *.dmg)          echo "| **macOS** | \`$f\` | 拖入「应用程序」安装 |" ;;
                   *.zip)          echo "| **macOS** | \`$f\` | 压缩包 |" ;;
+                  *.deb)          echo "| **Linux** | \`$f\` | Debian/Ubuntu 安装包 |" ;;
+                  *.rpm)          echo "| **Linux** | \`$f\` | Fedora/RHEL 安装包 |" ;;
+                  *.AppImage)     echo "| **Linux** | \`$f\` | 免安装可执行 |" ;;
                   *.blockmap|*.yml) ;;
                   *)              echo "| — | \`$f\` | — |" ;;
                 esac
