@@ -58,11 +58,20 @@ function writeTabsStore() {
   try {
     const store = {
       activeTabId,
-      tabs: getOrderedTabs().map(t => ({
-        tabId: t.tabId,
-        profileId: t.profileId,
-        providerId: t.providerId,
-      })),
+      tabs: getOrderedTabs().map(t => {
+        let url = '';
+        try {
+          if (t.view && !t.view.webContents.isDestroyed()) {
+            url = t.view.webContents.getURL() || '';
+          }
+        } catch (_) {}
+        return {
+          tabId: t.tabId,
+          profileId: t.profileId,
+          providerId: t.providerId,
+          url,
+        };
+      }),
     };
     fs.writeFileSync(getTabsFile(), JSON.stringify(store, null, 2), 'utf-8');
   } catch (err) {
@@ -155,7 +164,7 @@ function getTabByProfileId(profileId) {
   return null;
 }
 
-function createTab(profile) {
+function createTab(profile, restoreUrl) {
   if (!shellWindow || shellWindow.isDestroyed()) {
     throw new Error('壳窗口不存在，无法创建标签');
   }
@@ -222,10 +231,12 @@ function createTab(profile) {
   view.webContents.on('did-navigate', (_e, url) => {
     if (tab.closed) return;
     tab.sessionStore.handleUrlChange(url, tab.handle);
+    writeTabsStore();
   });
   view.webContents.on('did-navigate-in-page', (_e, url) => {
     if (tab.closed) return;
     tab.sessionStore.handleUrlChange(url, tab.handle);
+    writeTabsStore();
   });
   view.webContents.on('page-title-updated', (_e, title) => {
     tab.title = title || tab.title;
@@ -236,7 +247,14 @@ function createTab(profile) {
   });
   view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
-  if (tab.providerId) {
+  // 恢复时优先用保存的 URL，否则加载平台首页
+  const startUrl = (restoreUrl && typeof restoreUrl === 'string' && /^https?:\/\//i.test(restoreUrl))
+    ? restoreUrl
+    : null;
+  if (startUrl) {
+    tab.restoreUrl = startUrl;
+    view.webContents.loadURL(startUrl);
+  } else if (tab.providerId) {
     view.webContents.loadURL(provider.homeUrl);
   } else {
     view.webContents.loadFile(path.join(__dirname, '..', 'ui', 'platform-select.html'));
@@ -436,7 +454,7 @@ function restoreTabs() {
   if (valid.length > 0) {
     for (const t of valid) {
       const profile = profileManager.getProfileById(t.profileId);
-      if (profile) createTab(profile);
+      if (profile) createTab(profile, t.url);
     }
     if (store.activeTabId && tabs.has(store.activeTabId)) {
       switchTab(store.activeTabId);

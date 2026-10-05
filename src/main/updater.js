@@ -71,11 +71,9 @@ function isGitHubAccessError(error) {
   return githubKeywords.some((kw) => msg.includes(kw));
 }
 
-/** 显示系统通知（不打断用户） */
+/** 显示提示（改为应用内日志，不弹系统通知，避免频繁叮咚） */
 function showNotification(title, body) {
-  if (Notification.isSupported()) {
-    new Notification({ title, body }).show();
-  }
+  console.log('[Updater]', title, '-', body);
 }
 
 /** 弹出更新失败对话框，提供重试/取消选项 */
