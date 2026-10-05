@@ -1,6 +1,23 @@
 # Changelog
 
 
+## [0.3.5-alpha] - 2026-10-06
+
+### Added
+- **本地 OpenAI 兼容 API 服务器**（`http://127.0.0.1:11434`）：
+  - `POST /v1/chat/completions` —— 通过 API 把消息发到指定标签页的 AI
+  - `GET /v1/models` —— 列出可用标签页（作为 model）
+  - API Key 校验（配置文件 `api-config.json`）
+  - 用 `model` 字段指定目标标签页
+
+### Fixed
+- 修复 Windows 通知标题显示为 `electron.app.Electron`（补 `setAppUserModelId`）
+- 标签页命名改为「账号名-对话名」，去掉平台后缀
+
+### Changed
+- Release 下载表格改为**动态列出真实构建文件名**
+
+
 ## [0.3.1-alpha] - 2026-09-20
 
 ### Changed

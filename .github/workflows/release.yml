@@ -42,7 +42,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 构建完成后写入 Release 说明（固定模板 + 从 CHANGELOG 提取本版更新）
   release-notes:
     needs: build
     runs-on: ubuntu-latest
@@ -59,7 +58,11 @@ jobs:
           cat changelog-section.md
 
       - name: Compose release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # 查询本次 Release 的实际资产，生成真实文件名表格
+          ASSETS=$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
           {
             echo "> 多平台 AI 桌面应用（DeepSeek / ChatGPT / Claude）—— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
             echo "";
@@ -71,9 +74,20 @@ jobs:
             echo "";
             echo "| 平台 | 文件 | 说明 |";
             echo "| --- | --- | --- |";
-            echo "| **Windows** | `estrix-code-win-*.exe` | 安装版（推荐），双击安装 |";
-            echo "| **Windows** | `estrix-code-win-*-portable.exe` | 免安装便携版 |";
-            echo "| **macOS** | `estrix-code-mac-*.dmg` | 拖入「应用程序」安装 |";
+            if [ -n "$ASSETS" ]; then
+              while IFS= read -r f; do
+                case "$f" in
+                  *-portable.exe) echo "| **Windows** | \`$f\` | 免安装便携版 |" ;;
+                  *.exe)          echo "| **Windows** | \`$f\` | 安装版（推荐），双击安装 |" ;;
+                  *.dmg)          echo "| **macOS** | \`$f\` | 拖入「应用程序」安装 |" ;;
+                  *.zip)          echo "| **macOS** | \`$f\` | 压缩包 |" ;;
+                  *.blockmap|*.yml) ;;
+                  *)              echo "| — | \`$f\` | — |" ;;
+                esac
+              done <<< "$ASSETS"
+            else
+              echo "| — | （本次无构建产物） | — |";
+            fi
             echo "";
             echo "## 🚀 主要功能";
             echo "";
@@ -82,6 +96,7 @@ jobs:
             echo "- **AI 命令执行**：自动识别回复中的命令并执行，支持 bash / pwsh / 文件操作 / 代码运行";
             echo "- **MCP 扩展**：支持 Model Context Protocol，接入外部工具";
             echo "- **项目上下文**：绑定项目目录，AI 感知当前工程";
+            echo "- **本地 API**：OpenAI 兼容接口，可通过 API 操作标签页";
             echo "";
             echo "## ⚠️ 说明";
             echo "";
