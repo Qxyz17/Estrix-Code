@@ -3,11 +3,11 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { OVERLAY_HTML, OVERLAY_CSS } = require('../../src/preload/overlay/template');
 
-test('OVERLAY_HTML 包含核心元素', () => {
+test('OVERLAY_HTML 包含核心元素（精简版）', () => {
   assert.ok(OVERLAY_HTML.includes('estrix-overlay'));
-  assert.ok(OVERLAY_HTML.includes('estrix-btn-init'));
-  assert.ok(OVERLAY_HTML.includes('estrix-session-list'));
-  assert.ok(OVERLAY_HTML.includes('estrix-btn-manual-parse'));
+  assert.ok(OVERLAY_HTML.includes('estrix-cmd-preview'));
+  assert.ok(OVERLAY_HTML.includes('estrix-history-list'));
+  assert.ok(OVERLAY_HTML.includes('estrix-btn-open-settings'));
   assert.ok(OVERLAY_HTML.includes('estrix-status-badge'));
 });
 
