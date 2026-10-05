@@ -7,30 +7,33 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* 深色（默认） */
+    /* 深色（默认）—— 中性蓝灰，去 AI 紫 */
     :root {
-      --bar-bg: #14162a;
-      --tab-bg: #1c1f38;
-      --tab-active-bg: #262a4a;
-      --tab-text: #a8add8;
-      --tab-text-active: #e6e9ff;
-      --border: rgba(255, 255, 255, 0.08);
-      --primary: #8b93ff;
-      --danger: #ff6b7a;
-      --app-bg: #0d0f1a;
+      --bar-bg: #17181c;
+      --bar-border: rgba(255, 255, 255, 0.07);
+      --tab-bg: transparent;
+      --tab-hover-bg: rgba(255, 255, 255, 0.05);
+      --tab-active-bg: rgba(255, 255, 255, 0.09);
+      --tab-text: #8b8f9a;
+      --tab-text-active: #f0f1f4;
+      --accent: #5eb0ef;
+      --danger: #e5646e;
+      --app-bg: #0f1013;
+      --radius: 9px;
+      --ease: cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     /* 浅色：跟随系统 */
     @media (prefers-color-scheme: light) {
       :root {
-        --bar-bg: #f2f3f7;
-        --tab-bg: #e8eaf2;
-        --tab-active-bg: #ffffff;
-        --tab-text: #5a5f7a;
-        --tab-text-active: #1a1c2e;
-        --border: rgba(0, 0, 0, 0.10);
-        --primary: #6d76ff;
-        --danger: #e5484d;
+        --bar-bg: #fbfbfc;
+        --bar-border: rgba(0, 0, 0, 0.06);
+        --tab-hover-bg: rgba(0, 0, 0, 0.04);
+        --tab-active-bg: rgba(0, 0, 0, 0.07);
+        --tab-text: #6b6f7a;
+        --tab-text-active: #17181c;
+        --accent: #2f7fd8;
+        --danger: #d13d47;
         --app-bg: #ffffff;
       }
     }
@@ -47,11 +50,11 @@
     #tabbar {
       height: 40px;
       background: var(--bar-bg);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--bar-border);
       display: flex;
-      align-items: stretch;
-      padding: 0 6px;
-      gap: 4px;
+      align-items: center;
+      padding: 0 8px;
+      gap: 3px;
       overflow-x: auto;
       overflow-y: hidden;
     }
@@ -61,34 +64,42 @@
     .tab {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 0 12px;
-      margin-top: 6px;
-      min-width: 120px;
-      max-width: 220px;
-      height: 34px;
+      gap: 7px;
+      padding: 0 10px 0 12px;
+      min-width: 100px;
+      max-width: 200px;
+      height: 28px;
       background: var(--tab-bg);
-      border: 1px solid var(--border);
-      border-bottom: none;
-      border-radius: 8px 8px 0 0;
+      border: none;
+      border-radius: var(--radius);
       color: var(--tab-text);
-      font-size: 13px;
+      font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition: background 0.16s var(--ease), color 0.16s var(--ease);
       position: relative;
     }
 
-    .tab:hover { background: var(--tab-active-bg); color: var(--tab-text-active); }
+    .tab:hover { background: var(--tab-hover-bg); color: var(--tab-text-active); }
 
     .tab.active {
       background: var(--tab-active-bg);
       color: var(--tab-text-active);
-      border-color: rgba(139, 147, 255, 0.4);
+      font-weight: 560;
+    }
+
+    .tab.active::before {
+      content: '';
+      position: absolute;
+      left: 4px; top: 7px; bottom: 7px;
+      width: 2.5px;
+      border-radius: 2px;
+      background: var(--accent);
     }
 
     .tab.dragging { opacity: 0.4; }
-    .tab.drag-over { border-left: 2px solid var(--primary); }
+    .tab.drag-over { box-shadow: -2px 0 0 0 var(--accent); }
 
     .tab-title {
       flex: 1;
@@ -98,36 +109,40 @@
     }
 
     .tab-close {
-      width: 16px;
-      height: 16px;
-      line-height: 14px;
+      width: 17px;
+      height: 17px;
+      line-height: 15px;
       text-align: center;
       border: none;
       background: transparent;
       color: inherit;
-      border-radius: 4px;
+      border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
-      opacity: 0.6;
+      font-size: 13px;
+      opacity: 0;
       flex-shrink: 0;
+      transition: opacity 0.14s var(--ease), background 0.14s var(--ease);
     }
 
-    .tab-close:hover { background: rgba(255, 107, 122, 0.25); color: #fff; opacity: 1; }
+    .tab:hover .tab-close { opacity: 0.55; }
+    .tab-close:hover { background: rgba(229, 100, 110, 0.22); color: var(--danger); opacity: 1 !important; }
 
     .tab-new {
-      margin-top: 6px;
-      width: 34px;
-      height: 34px;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
       border: none;
       background: transparent;
       color: var(--tab-text);
-      font-size: 20px;
-      border-radius: 8px;
+      font-size: 17px;
+      border-radius: var(--radius);
       cursor: pointer;
       flex-shrink: 0;
+      transition: background 0.16s var(--ease), color 0.16s var(--ease);
     }
 
-    .tab-new:hover { background: var(--tab-active-bg); color: var(--tab-text-active); }
+    .tab-new:hover { background: var(--tab-hover-bg); color: var(--tab-text-active); }
 
     /* 内容区由 WebContentsView 覆盖，这里只留空 */
     #content-placeholder {

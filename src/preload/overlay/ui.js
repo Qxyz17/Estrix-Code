@@ -127,7 +127,7 @@ function showConfirmDialog(text, options) {
       background: rgba(22, 24, 44, 0.96);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(139, 147, 255, 0.35);
+      border: 1px solid rgba(94, 176, 239, 0.35);
       border-radius: 14px;
       padding: 20px 18px 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -137,7 +137,7 @@ function showConfirmDialog(text, options) {
     `;
     const cancelBtnHtml = showCancel
       ? `<button id="estrix-confirm-cancel" style="
-          padding: 9px 24px; border: 1px solid rgba(139,147,255,0.4); border-radius: 10px;
+          padding: 9px 24px; border: 1px solid rgba(94,176,239,0.4); border-radius: 10px;
           background: transparent; color: #aab0ff;
           font-size: 13px; font-weight: 600; cursor: pointer;
           margin-right: 10px; transition: all 0.2s;
@@ -148,7 +148,7 @@ function showConfirmDialog(text, options) {
       <div>${cancelBtnHtml}
         <button id="estrix-confirm-ok" style="
           padding: 9px 28px; border: none; border-radius: 10px;
-          background: linear-gradient(135deg, #8b93ff, #6d76ff); color: #fff;
+          background: linear-gradient(135deg, #5eb0ef, #4a9de0); color: #fff;
           font-size: 13px; font-weight: 600; cursor: pointer;
           transition: all 0.2s;
         ">${okText}</button>
@@ -301,8 +301,8 @@ function flashBadge() {
     badge.style.background = 'rgba(124,255,178,0.25)';
     badge.style.borderColor = 'rgba(124,255,178,0.6)';
     setTimeout(() => {
-      badge.style.background = 'rgba(139, 147, 255, 0.22)';
-      badge.style.borderColor = 'rgba(139, 147, 255, 0.4)';
+      badge.style.background = 'rgba(94, 176, 239, 0.22)';
+      badge.style.borderColor = 'rgba(94, 176, 239, 0.4)';
     }, 3000);
   }
   if (dot) {
