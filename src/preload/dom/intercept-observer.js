@@ -9,6 +9,14 @@ const { handleToolCall, handleJsToolScript } = require('./observer');
 const { sendToolResultToChat, sendCombinedJsResultsToChat, sendMessageToChat, shiftApiRequest, hasApiRequest } = require('./chat-input');
 const { hasTool, toolNamesList } = require('../tool-names');
 
+// 懒加载 UI 状态（避免循环依赖）
+function setTaskStatusSafe(running) {
+  try {
+    const ui = require('../overlay/ui');
+    if (ui && typeof ui.setTaskStatus === 'function') ui.setTaskStatus(running);
+  } catch (_) { /* overlay 未就绪时忽略 */ }
+}
+
 const MAX_JS_RETRY = 3;
 // 连续 XML 提示次数（防止无限循环）
 let xmlHintCount = 0;
@@ -75,8 +83,13 @@ async function processInterceptedResponse(text) {
   if (jsBlocks.length > 0) {
     console.log('[Estrix Code][拦截] 检测到 JS 工具代码块（' + jsBlocks.length + ' 个），开始执行');
     xmlHintCount = 0;
-    const results = await executeJsBlocksWithRetry(jsBlocks);
-    if (results.length > 0) sendCombinedJsResultsToChat(results);
+    setTaskStatusSafe(true);
+    try {
+      const results = await executeJsBlocksWithRetry(jsBlocks);
+      if (results.length > 0) sendCombinedJsResultsToChat(results);
+    } finally {
+      setTaskStatusSafe(false);
+    }
     return;
   }
 
@@ -93,7 +106,12 @@ async function processInterceptedResponse(text) {
       return;
     }
     console.log('[Estrix Code][拦截] 工具存在: ' + toolCall.toolName + ', 开始执行');
-    await handleToolCall(toolCall);
+    setTaskStatusSafe(true);
+    try {
+      await handleToolCall(toolCall);
+    } finally {
+      setTaskStatusSafe(false);
+    }
     return;
   }
 

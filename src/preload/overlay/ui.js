@@ -179,6 +179,15 @@ function setTaskStatus(running) {
   if (status) {
     status.classList.toggle('estrix-hidden', !running);
   }
+  // 右下角徽章：运行中 → 高亮色；结束 → 默认色
+  const badge = document.getElementById('estrix-status-badge');
+  const dot = document.getElementById('estrix-status-dot');
+  if (badge) {
+    badge.classList.toggle('estrix-running', !!running);
+  }
+  if (dot) {
+    dot.classList.toggle('estrix-running', !!running);
+  }
 }
 
 /**

@@ -43,7 +43,7 @@ if (RENDERER_LOG_DIR) {
 
 const { registerIpcHandlers } = require('./ipc');
 
-// ========== 应用菜单 ==========
+// ========== 应用菜单（精简版）==========
 function setupAppMenu() {
   const template = [
     {
@@ -70,39 +70,8 @@ function setupAppMenu() {
       ]
     },
     {
-      label: '编辑',
-      submenu: [
-        { role: 'undo', label: '撤销' },
-        { role: 'redo', label: '重做' },
-        { type: 'separator' },
-        { role: 'cut', label: '剪切' },
-        { role: 'copy', label: '复制' },
-        { role: 'paste', label: '粘贴' },
-        { role: 'delete', label: '删除' },
-        { type: 'separator' },
-        { role: 'selectAll', label: '全选' }
-      ]
-    },
-    {
       label: '导航',
       submenu: [
-        {
-          label: '后退',
-          accelerator: 'Alt+Left',
-          click: () => {
-            const tab = tabManager.getActiveTab();
-            if (tab && !tab.closed) tab.view.webContents.navigationHistory.goBack();
-          }
-        },
-        {
-          label: '前进',
-          accelerator: 'Alt+Right',
-          click: () => {
-            const tab = tabManager.getActiveTab();
-            if (tab && !tab.closed) tab.view.webContents.navigationHistory.goForward();
-          }
-        },
-        { type: 'separator' },
         {
           label: '重新加载',
           accelerator: 'CmdOrCtrl+R',
@@ -110,49 +79,13 @@ function setupAppMenu() {
             const tab = tabManager.getActiveTab();
             if (tab && !tab.closed) tab.view.webContents.reload();
           }
-        },
-        {
-          label: '停止加载',
-          accelerator: 'Esc',
-          click: () => {
-            const tab = tabManager.getActiveTab();
-            if (tab && !tab.closed) tab.view.webContents.stop();
-          }
-        },
-        { type: 'separator' },
-        {
-          label: '主页',
-          click: () => {
-            const tab = tabManager.getActiveTab();
-            if (tab && tab.providerId) {
-              const provider = getProvider(tab.providerId);
-              if (provider) tab.view.webContents.loadURL(provider.homeUrl);
-            }
-          }
         }
       ]
     },
     {
       label: '查看',
       submenu: [
-        { role: 'resetZoom', label: '重置缩放' },
-        { role: 'zoomIn', label: '放大' },
-        { role: 'zoomOut', label: '缩小' },
-        { type: 'separator' },
-        { role: 'togglefullscreen', label: '切换全屏' },
-        { type: 'separator' },
         { role: 'toggleDevTools', label: '开发者工具' }
-      ]
-    },
-    {
-      label: '窗口',
-      submenu: [
-        { role: 'minimize', label: '最小化' },
-        { role: 'zoom', label: '缩放' },
-        { type: 'separator' },
-        { role: 'front', label: '全部置于顶层' },
-        { type: 'separator' },
-        { role: 'close', label: '关闭窗口' }
       ]
     },
     {
