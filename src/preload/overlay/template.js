@@ -2,6 +2,8 @@
  * 覆盖层 UI 模板（HTML 与 CSS）
  * 方向 C：悬浮球模式 —— 右下角悬浮球 + 按需弹出小面板
  */
+const FONT_INLINE = require('./font-inline');
+
 const OVERLAY_HTML = [
 '<div id="estrix-overlay" class="estrix-overlay estrix-hidden">',
 '  <div class="estrix-header">',
@@ -35,6 +37,13 @@ const OVERLAY_HTML = [
 ].join('\n');
 
 const OVERLAY_CSS = [
+'@font-face {',
+'  font-family: "HarmonyOS Sans SC";',
+'  src: url(' + JSON.stringify(FONT_INLINE) + ') format("woff2");',
+'  font-weight: 400;',
+'  font-style: normal;',
+'  font-display: swap;',
+'}',
 ':root {',
 '  --ck-bg: rgba(23, 24, 28, 0.97);',
 '  --ck-surface: rgba(255, 255, 255, 0.045);',
@@ -143,6 +152,8 @@ const OVERLAY_CSS = [
 '}',
 '.estrix-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }',
 '.estrix-task-status { display: inline-flex; align-items: center; gap: 5px; color: var(--ck-green); font-size: 11px; font-weight: 500; }',
+'/* 强制网页也用 HarmonyOS 字体 */',
+'body, body *:not(code):not(pre):not([class*="code"]):not([class*="mono"]) { font-family: "HarmonyOS Sans SC", -apple-system, "Segoe UI", "PingFang SC", sans-serif !important; }',
 '@keyframes estrix-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }',
 ].join('\n');
 
