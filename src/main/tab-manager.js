@@ -190,6 +190,8 @@ function createTab(profile, restoreUrl) {
   const tab = {
     tabId,
     view,
+    unloaded: false,
+    lastActiveTime: Date.now(),
     profileId: profileData.id,
     providerId: profileData.providerId || '',
     name: profileData.name || provider.name,
@@ -277,6 +279,11 @@ function createTab(profile, restoreUrl) {
 function switchTab(tabId) {
   const tab = tabs.get(tabId);
   if (!tab || tab.closed) return false;
+  // 若标签已被闲置卸载，切回时重新加载
+  if (tab.unloaded) {
+    reviveTab(tab);
+  }
+  tab.lastActiveTime = Date.now();
   activeTabId = tabId;
   windowState.setMainWindow(tab.handle);
   layoutAll();
@@ -284,6 +291,50 @@ function switchTab(tabId) {
   try { tab.view.webContents.focus(); } catch (_) {}
   writeTabsStore();
   return true;
+}
+
+/** 重新加载被闲置卸载的标签 */
+function reviveTab(tab) {
+  if (!tab || !tab.unloaded) return;
+  try {
+    const url = tab.restoreUrl || tab.lastUrl || (tab.providerId ? (getProvider(tab.providerId) || {}).homeUrl : null);
+    if (url) tab.view.webContents.loadURL(url);
+    tab.unloaded = false;
+  } catch (err) {
+    console.error('[Tabs] 恢复标签失败:', err.message);
+  }
+}
+
+/** 闲置标签卸载（省内存）。配置读 settings：idleUnload.enabled / timeoutMin */
+let idleWatcherTimer = null;
+function startIdleWatcher(getConfig) {
+  if (idleWatcherTimer) clearInterval(idleWatcherTimer);
+  idleWatcherTimer = setInterval(() => {
+    try {
+      const cfg = getConfig() || {};
+      const idle = cfg.idleUnload || {};
+      if (!idle.enabled) return;
+      const timeoutMs = Math.max(1, Number(idle.timeoutMin) || 10) * 60 * 1000;
+      const now = Date.now();
+      for (const tab of tabs.values()) {
+        if (tab.closed || tab.unloaded) continue;
+        if (tab.tabId === activeTabId) continue; // 不卸当前
+        if (now - (tab.lastActiveTime || 0) < timeoutMs) continue; // 未超时
+        // 卸载
+        try {
+          tab.lastUrl = tab.view.webContents.getURL();
+          tab.restoreUrl = tab.lastUrl;
+          tab.view.webContents.close();
+          tab.unloaded = true;
+          console.log('[Tabs] 闲置卸载: ' + tab.tabId + ' (' + Math.round((now - tab.lastActiveTime) / 60000) + ' 分钟未用)');
+        } catch (err) {
+          console.error('[Tabs] 卸载失败:', err.message);
+        }
+      }
+    } catch (err) {
+      console.error('[Tabs] 闲置检查出错:', err.message);
+    }
+  }, 2 * 60 * 1000); // 每 2 分钟检查
 }
 
 function closeTab(tabId) {
@@ -479,6 +530,7 @@ module.exports = {
   createTab,
   closeTab,
   switchTab,
+  startIdleWatcher,
   reorderTabs,
   setTabProvider,
   setTabName,

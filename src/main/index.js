@@ -429,6 +429,10 @@ if (!gotSingleInstanceLock) {
       console.error('[MCP] 初始化连接失败:', err.message);
     });
 
+    // 启动闲置标签卸载
+    const appSettings = require('./app-settings');
+    tabManager.startIdleWatcher(() => appSettings.readSettings());
+
     // 启动本地 API 服务器（OpenAI 兼容）
     const apiServer = require('./api-server');
     const apiConfig = require('./api-config');
