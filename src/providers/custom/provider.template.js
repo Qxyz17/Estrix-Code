@@ -4,12 +4,12 @@
  *   1. 复制本文件，改名为你的平台 id（如 my-platform.js）
  *   2. 修改 id、name、homeUrl 等字段
  *   3. 根据目标平台 DOM 结构，填写 inputSelectors、sendButtonSelectors 等选择器
- *   4. 实现 extractSessionId、matchesUrl、isResponseComplete 等方法
+ *   4. 实现 extractSessionId、matchesUrl 等方法
+ *   5. （可选）需要网络拦截时，设置 useIntercept 并实现 getHookSource
  *
- * 类型提示：在顶部加一行（本文件已加）：
- *   /** @type {import('./custom/provider.d.ts').Provider} */
+ * 类型提示：见下方 @type 注释
  */
-/** @type {import('./custom/provider.d.ts').Provider} */
+/** @type {import('../types.js').Provider} */
 module.exports = {
   id: 'my-platform',
   name: '我的平台',
@@ -80,43 +80,30 @@ module.exports = {
     return el ? el.textContent.trim() : '';
   },
 
-  // 判断 AI 是否完成回复（需根据目标平台调整）
-  isResponseComplete() {
-    // 示例：检测停止按钮消失
-    const stopBtn = document.querySelector('button[aria-label="Stop"]');
-    return !stopBtn;
-  },
-
-  // 获取 AI 消息容器（排除用户消息）
-  getMessageCandidates() {
-    return Array.from(document.querySelectorAll('[class*="message-row"]'))
-      .filter(el => !this.isUserMessage(el));
-  },
-
-  // 取回复内容根节点
-  getMessageMarkdown(messageEl) {
-    return messageEl.querySelector('[class*="markdown"]') || messageEl;
-  },
-
-  // 判断是否用户消息
-  isUserMessage(node) {
-    let current = node;
-    while (current) {
-      const testid = current.getAttribute?.('data-testid') || '';
-      if (testid === 'user-message') return true;
-      const role = current.getAttribute?.('data-role') || '';
-      if (role === 'user') return true;
-      current = current.parentElement;
-    }
-    return false;
-  },
-
-  // 提取代码块语言
-  getCodeBlockLanguage(pre) {
-    if (!pre) return '';
-    const codeEl = pre.querySelector('code');
-    const cls = codeEl ? (codeEl.className || '') : (pre.className || '');
-    const m = cls.match(/language-([\w-]+)/);
-    return m ? m[1].toLowerCase() : '';
-  },
+  // ========== 网络拦截模式（可选）==========
+  // 默认走 DOM 抓取；若目标平台需要拦截网络请求获取回复，
+  // 设置 useIntercept: true 并实现 getHookSource()。
+  //
+  // ⚠️ 必须自包含：provider 是单文件上传，hook 源码要内联在此方法中，
+  // 不能 require 外部文件。hook 函数体在主世界独立执行，
+  // 只能使用浏览器全局（window/document/fetch 等），不引用模块级变量。
+  //
+  // getHookSource() 返回源码字符串，负责监听 fetch/XHR 的 SSE 流，并派发：
+  //   window.dispatchEvent(new CustomEvent('estrix-ai-response', {
+  //     detail: {
+  //       text: '<完整回复文本>',
+  //       finished: true,
+  //       // 可选：服务端 token 统计（面板会显示）
+  //       tokenUsage: { accumulatedTokens, insertedAt, updatedAt, modelType }
+  //     }
+  //   }));
+  //
+  // 参考内置 provider 的 getHookSource()（deepseek.js / claude.js / chatgpt.js）。
+  //
+  // useIntercept: true,
+  // getHookSource() {
+  //   return '(' + function () {
+  //     // 在此编写主世界拦截逻辑
+  //   }.toString() + ')();';
+  // },
 };

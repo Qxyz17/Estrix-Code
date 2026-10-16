@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-verify",
+    "out",
+    "build",
+    "wyp",
+    ".estrixCode",
+    ".playwright-mcp",
+    "src/providers/hooks"
+  ]
+}

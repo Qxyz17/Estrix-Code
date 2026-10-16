@@ -1,0 +1,264 @@
+/* ===== 全局滚动条（统一规范：4px 细条、透明轨道、圆角滑块）=====
+ * 不要逐个元素写滚动条样式——统一在这里定义，避免各处不一致。
+ */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
+
+/* ===== 浅色（默认）===== */
+  :root {
+    --ck-bg: #ffffff;
+    --ck-bg-sub: #fbfbfd;
+    --ck-toolbar: #fbfbfd;
+    --ck-surface: #f5f6f8;
+    --ck-surface-hover: #eef0f4;
+    --ck-border: rgba(16, 24, 40, 0.07);
+    --ck-border-strong: rgba(16, 24, 40, 0.12);
+    --ck-primary: #4d6bfe;
+    --ck-primary-strong: #3b5bdb;
+    --ck-primary-soft: rgba(77, 107, 254, 0.08);
+    --ck-text: #16181d;
+    --ck-text-2: #545a67;
+    --ck-text-dim: #8a8f9b;
+    --ck-hover-bg: #e6e8ee;
+    --ck-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --ck-shadow: 0 1px 3px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.03);
+    --ck-shadow-lg: 0 4px 12px rgba(16, 24, 40, 0.07);
+    --ck-scroll-thumb: rgba(0, 0, 0, 0.14);
+    --ck-scroll-hover: rgba(0, 0, 0, 0.24);
+    --ck-danger: #e5484d;
+    --ck-green: #30a46c;
+  }
+  /* ===== 深色（由主题 presenter 设 body[data-ck-dark]）===== */
+  body[data-ck-dark] {
+    --ck-bg: #16181d;
+    --ck-bg-sub: #191c22;
+    --ck-toolbar: #191c22;
+    --ck-surface: rgba(255, 255, 255, 0.045);
+    --ck-surface-hover: rgba(255, 255, 255, 0.08);
+    --ck-border: rgba(255, 255, 255, 0.08);
+    --ck-border-strong: rgba(255, 255, 255, 0.14);
+    --ck-primary: #6b83ff;
+    --ck-primary-strong: #8b9dff;
+    --ck-primary-soft: rgba(107, 131, 255, 0.16);
+    --ck-text: #e4e6eb;
+    --ck-text-2: #a8adba;
+    --ck-text-dim: #757b8a;
+    --ck-hover-bg: rgba(255, 255, 255, 0.13);
+    --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --ck-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+    --ck-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
+    --ck-scroll-thumb: rgba(255, 255, 255, 0.14);
+    --ck-scroll-hover: rgba(255, 255, 255, 0.24);
+    --ck-danger: #ff6369;
+    --ck-green: #46b47e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--ck-bg); color: var(--ck-text); overflow: hidden;
+  }
+  .shell { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ===== 顶部工具栏 ===== */
+  .toolbar {
+    display: flex; align-items: center; gap: 2px;
+    height: 46px; padding: 0 12px;
+    background: var(--ck-bg);
+    border-bottom: 1px solid var(--ck-border);
+    flex-shrink: 0;
+  }
+  /* 纯净模式/原版模式 切换按钮（项目选择器右侧） */
+  .harness-toggle {
+    height: 30px; min-width: 30px; padding: 0 8px; flex-shrink: 0;
+    border: none; border-radius: 8px;
+    background: transparent; color: var(--ck-text-2);
+    font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background .14s, color .14s;
+    white-space: nowrap;
+  }
+  .harness-toggle:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .harness-toggle:active { transform: scale(0.97); }
+
+  /* 项目目录选择器（地址栏最左） */
+  .project-picker {
+    display: flex; align-items: center; gap: 7px;
+    height: 32px; padding: 0 8px 0 5px; flex-shrink: 0;
+    max-width: 190px;
+    border: 1px solid transparent; border-radius: 9px;
+    background: transparent; cursor: pointer;
+    transition: background .14s, border-color .14s;
+    font-family: inherit;
+  }
+  .project-picker:hover { background: var(--ck-surface-hover); }
+  .project-picker:active { transform: scale(0.97); }
+  .pp-icon {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--ck-primary), var(--ck-primary-strong));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    line-height: 1;
+  }
+  .pp-name {
+    font-size: 12.5px; font-weight: 600; color: var(--ck-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 120px;
+  }
+  .pp-caret { width: 13px; height: 13px; flex-shrink: 0; color: var(--ck-text-dim); }
+  .nav-btn {
+    width: 30px; height: 30px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 7px; cursor: pointer;
+    background: transparent; color: var(--ck-text-2);
+    transition: background .14s, color .14s;
+  }
+  .nav-btn:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .nav-btn:active { background: var(--ck-surface); }
+  .nav-btn.disabled { opacity: .3; cursor: default; pointer-events: none; }
+  .nav-btn svg { width: 16px; height: 16px; }
+  .url-wrap {
+    flex: 1; display: flex; align-items: center;
+    height: 32px; padding: 0 12px; margin: 0 8px;
+    background: var(--ck-surface);
+    border: 1px solid transparent;
+    border-radius: 9px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .url-wrap.estrix-hidden { display: none; }
+  .url-wrap:hover { background: var(--ck-surface-hover); }
+  .url-wrap:focus-within { border-color: var(--ck-primary); background: var(--ck-bg); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .lock { width: 13px; height: 13px; flex-shrink: 0; margin-right: 9px; color: var(--ck-green); }
+  .url-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    color: var(--ck-text); font-size: 13px; font-family: inherit;
+  }
+  .url-input::placeholder { color: var(--ck-text-dim); }
+  .url-input::selection { background: var(--ck-primary); color: #fff; }
+  .divider { width: 1px; height: 18px; background: var(--ck-border-strong); margin: 0 6px; }
+  /* 平台选择模式：地址栏工具条隐藏导航/地址输入（只留空白） */
+  .toolbar.ck-toolbar-plain .nav-btn,
+  .toolbar.ck-toolbar-plain .url-wrap,
+  .toolbar.ck-toolbar-plain .divider,
+  .toolbar.ck-toolbar-plain #project-picker { display: none; }
+
+  /* ===== 状态条（窗口底部，显示当前上下文 token）===== */
+  .statusbar {
+    display: flex;
+    align-items: center; justify-content: flex-end; gap: 12px;
+    height: 28px; padding: 0 16px;
+    background: var(--ck-bg-sub);
+    border-top: 1px solid var(--ck-border);
+    flex-shrink: 0;
+    font-size: 11.5px; color: var(--ck-text-2);
+    user-select: none;
+  }
+  .statusbar .sb-item { display: flex; align-items: center; gap: 4px; }
+  .statusbar .sb-icon { font-size: 11px; opacity: .6; }
+  .statusbar .sb-label { font-size: 11px; color: var(--ck-text-dim); }
+  .statusbar .sb-value { color: var(--ck-text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .statusbar .sb-item[title] { cursor: help; }
+  .statusbar .sb-sep { width: 1px; height: 11px; background: var(--ck-border-strong); margin: 0 2px; }
+  .statusbar .sb-spacer { flex: 1; }
+  /* 最近使用（技能/MCP/子代理） */
+  .sb-recent { display: flex; align-items: center; gap: 6px; overflow: hidden; min-width: 0; }
+  .sb-recent-label { font-size: 10.5px; color: var(--ck-text-dim); flex-shrink: 0; }
+  .sb-chip {
+    font-size: 10.5px; padding: 1px 8px; border-radius: 999px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+    transition: filter .15s, transform .1s;
+    border: 1px solid transparent;
+  }
+  .sb-chip:hover { filter: brightness(1.15); }
+  .sb-chip:active { transform: scale(.96); }
+  .sb-chip-skill { color: var(--ck-primary); background: var(--ck-primary-soft); border-color: color-mix(in srgb, var(--ck-primary) 30%, transparent); }
+  .sb-chip-mcp { color: var(--ck-green); background: color-mix(in srgb, var(--ck-green) 14%, transparent); border-color: color-mix(in srgb, var(--ck-green) 34%, transparent); }
+  .sb-chip-agent { color: #d97757; background: color-mix(in srgb, #d97757 14%, transparent); border-color: color-mix(in srgb, #d97757 34%, transparent); }
+  .sb-chip-snippet { color: #9b7bfa; background: color-mix(in srgb, #9b7bfa 14%, transparent); border-color: color-mix(in srgb, #9b7bfa 34%, transparent); }
+
+  /* ===== 主区域 ===== */
+  .main-area { flex: 1; display: flex; min-height: 0; }
+  .viewport { flex: 1; min-width: 0; }
+
+  /* ===== 侧边栏 ===== */
+  .ck-sidebar { width: 320px; flex-shrink: 0; display: flex; position: relative; background: var(--ck-bg); border-right: 1px solid var(--ck-border); }
+  .ck-activitybar {
+    width: 48px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 0; gap: 2px;
+    background: var(--ck-bg-sub);
+  }
+  .ck-ab-item {
+    width: 36px; height: 36px; border: none; border-radius: 8px;
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; transition: background .15s;
+  }
+  .ck-ab-item:hover { background: var(--ck-surface-hover); }
+  .ck-ab-item:active { transform: scale(0.92); }
+  .ck-ab-icon { width: 18px; height: 18px; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
+  .ck-ab-text { font-size: 15px; font-weight: 700; line-height: 1; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
+  .ck-ab-item:hover .ck-ab-icon, .ck-ab-item:hover .ck-ab-text { opacity: .8; }
+  .ck-ab-item.ck-ab-active { background: var(--ck-primary-soft); }
+  .ck-ab-item.ck-ab-active .ck-ab-icon, .ck-ab-item.ck-ab-active .ck-ab-text { opacity: 1; color: var(--ck-primary); }
+  .ck-ab-spacer { flex: 1; }
+
+  .ck-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  /* 面板列：左（各页）+ 右（文件预览，默认隐藏） */
+  .ck-panel-cols { flex: 1; min-width: 0; display: flex; flex-direction: row; overflow: hidden; }
+  .ck-panel-body { flex: 1; min-width: 0; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 14px; }
+  .ck-tab { display: none; flex-direction: column; gap: 14px; }
+  .ck-tab.ck-tab-active { display: flex; }
+  .ck-placeholder { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
+
+  /* ===== 自绘标题栏：拖拽区 + 窗口控制按钮 ===== */
+  .toolbar {
+    -webkit-app-region: drag;
+  }
+  /* macOS：左上角给系统红绿灯留出空间 */
+  body.ck-mac .toolbar { padding-left: 78px; }
+  .toolbar button,
+  .toolbar input,
+  .toolbar .url-wrap,
+  .toolbar .ck-win-controls {
+    -webkit-app-region: no-drag;
+  }
+  .ck-win-divider {
+    margin-left: auto;
+  }
+  .ck-win-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+  .ck-win-btn {
+    width: 34px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ck-text-2);
+    cursor: pointer;
+    transition: background .14s, color .14s;
+  }
+  .ck-win-btn svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+  }
+  .ck-win-btn:hover {
+    background: var(--ck-surface-hover);
+    color: var(--ck-text);
+  }
+  .ck-win-close:hover {
+    background: #e5484d;
+    color: #fff;
+  }

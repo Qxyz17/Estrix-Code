@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } = require('../../tools/GrepToolNew');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseGrepArgs, validateInclude, parseGrepMatches, formatGrepOutput, retainGrepMatches, previewLine } from '../../src/tools/impl/grep.js';
 
 test('validateInclude 合法', () => {
   assert.doesNotThrow(() => validateInclude('*.js'));
@@ -35,8 +35,10 @@ test('parseGrepArgs 空 pattern 抛错', () => {
   assert.throws(() => parseGrepArgs('', undefined, undefined), /pattern must be a non-empty string/);
 });
 
-test('parseGrepArgs path 空抛错', () => {
-  assert.throws(() => parseGrepArgs('foo', '', undefined), /path must be a non-empty string when given/);
+test('parseGrepArgs path 空串视为未提供', () => {
+  assert.deepStrictEqual(parseGrepArgs('foo', '', undefined), { pattern: 'foo' });
+  assert.deepStrictEqual(parseGrepArgs('foo', '   ', undefined), { pattern: 'foo' });
+  assert.throws(() => parseGrepArgs('foo', 123, undefined), /path must be a string when given/);
 });
 
 test('parseGrepMatches 解析 NDJSON', () => {
@@ -91,4 +93,5 @@ test('previewLine 超长截断', () => {
   assert.match(out, /\(line truncated\)/);
   assert.strictEqual(previewLine('short', 100), 'short');
 });
+
 

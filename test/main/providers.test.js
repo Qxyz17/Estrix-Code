@@ -1,11 +1,13 @@
-'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+import { test, vi } from 'vitest';
+import assert from 'node:assert';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
 
-const { getProvider, getAllProviders, getProviderByUrl } = require('../../src/providers');
-const deepseek = require('../../src/providers/deepseek');
-const claude = require('../../src/providers/claude');
-const chatgpt = require('../../src/providers/chatgpt');
+import { getProvider, getAllProviders, getProviderByUrl } from '../../src/providers/registry.js';
+import { deepseek } from '../../src/providers/deepseek.js';
+import { claude } from '../../src/providers/claude.js';
+import { chatgpt } from '../../src/providers/chatgpt.js';
 
 test('getAllProviders 包含 deepseek 和 claude', () => {
   const all = getAllProviders();
@@ -56,50 +58,6 @@ test('claude extractSessionId', () => {
   assert.strictEqual(claude.extractSessionId('https://claude.ai/new'), null);
 });
 
-test('deepseek isUserMessage 检测 data-role=user', () => {
-  const node = { parentElement: null, getAttribute: (n) => n === 'data-role' ? 'user' : '' };
-  assert.strictEqual(deepseek.isUserMessage(node), true);
-});
-
-test('deepseek isUserMessage 检测普通节点返回 false', () => {
-  const node = { parentElement: null, getAttribute: () => '', className: '', textContent: 'normal' };
-  assert.strictEqual(deepseek.isUserMessage(node), false);
-});
-
-test('claude isUserMessage 检测 data-testid=user-message', () => {
-  const node = { parentElement: null, getAttribute: (n) => n === 'data-testid' ? 'user-message' : '' };
-  assert.strictEqual(claude.isUserMessage(node), true);
-});
-
-test('deepseek getCodeBlockLanguage 从 data-language 提取', () => {
-  const pre = {
-    getAttribute: (n) => n === 'data-language' ? 'estrix' : '',
-    closest: () => null,
-    querySelector: () => null,
-    classList: [],
-  };
-  assert.strictEqual(deepseek.getCodeBlockLanguage(pre), 'estrix');
-});
-
-test('claude getCodeBlockLanguage 从 language-* 提取', () => {
-  const pre = {
-    querySelector: () => ({ className: 'language-estrix' }),
-  };
-  assert.strictEqual(claude.getCodeBlockLanguage(pre), 'estrix');
-});
-
-test('deepseek getMessageMarkdown 提取消息根节点', () => {
-  const msg = { querySelector: (sel) => sel === ':scope > .ds-markdown' ? 'MARKDOWN' : null };
-  assert.strictEqual(deepseek.getMessageMarkdown(msg), 'MARKDOWN');
-});
-
-test('claude getMessageMarkdown 优先 standard-markdown', () => {
-  const msg = {
-    querySelector: (sel) => sel === '[class*="standard-markdown"]' ? 'STD' : null,
-  };
-  assert.strictEqual(claude.getMessageMarkdown(msg), 'STD');
-});
-
 test('chatgpt matchesUrl', () => {
   assert.strictEqual(chatgpt.matchesUrl('https://chatgpt.com/'), true);
   assert.strictEqual(chatgpt.matchesUrl('https://chat.openai.com/c/abc'), true);
@@ -113,55 +71,14 @@ test('chatgpt extractSessionId 排除 WEB 中间态', () => {
   assert.strictEqual(chatgpt.extractSessionId('https://chatgpt.com/'), null);
 });
 
-test('chatgpt getCodeBlockLanguage 从 class 提取', () => {
-  const pre = {
-    querySelector: () => ({ className: 'language-estrix' }),
-    className: '',
-  };
-  assert.strictEqual(chatgpt.getCodeBlockLanguage(pre), 'estrix');
-});
-
-test('chatgpt getCodeBlockLanguage 从 header 文本提取', () => {
-  // 无 class 语言标记时，从 header（移除 svg/button 后）取纯文本
-  const header = {
-    cloneNode: () => ({
-      querySelectorAll: () => [],
-      textContent: 'estrix',
-    }),
-  };
-  const pre = {
-    querySelector: (sel) => sel.includes('items-center') ? header : null,
-    className: '',
-  };
-  assert.strictEqual(chatgpt.getCodeBlockLanguage(pre), 'estrix');
-});
-
-test('chatgpt getMessageCandidates 过滤用户消息', () => {
-  const origDoc = global.document;
-  const assistant = { getAttribute: (n) => n === 'data-message-author-role' ? 'assistant' : '' };
-  const user = { getAttribute: (n) => n === 'data-message-author-role' ? 'user' : '' };
-  global.document = {
-    querySelectorAll: () => [assistant, user],
-  };
-  try {
-    const list = chatgpt.getMessageCandidates();
-    assert.strictEqual(list.length, 1);
-    assert.strictEqual(list[0], assistant);
-  } finally {
-    global.document = origDoc;
-  }
-});
-
-test('渲染进程经注入的 userData 路径可加载自定义 Provider', () => {
-  const os = require('node:os');
-  const path = require('node:path');
-  const fs = require('node:fs');
+test('渲染进程经注入的 userData 路径可加载自定义 Provider', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'estrix-cp-'));
   const dir = path.join(tmp, 'custom-providers');
   fs.mkdirSync(dir, { recursive: true });
   const providerFile = path.join(dir, 'demo.js');
   fs.writeFileSync(providerFile,
     "module.exports = { id: 'demo', name: 'Demo', homeUrl: 'https://demo.example.com', " +
+    "sessionUrlBase: 'https://demo.example.com/chat/', " +
     "matchesUrl: (u) => String(u).includes('demo.example.com'), extractSessionId: () => '1' };");
   fs.writeFileSync(path.join(tmp, 'custom-providers.json'),
     JSON.stringify({ paths: [providerFile.replace(/\\/g, '/')] }));
@@ -170,16 +87,17 @@ test('渲染进程经注入的 userData 路径可加载自定义 Provider', () =
   const savedType = process.type;
   process.type = 'renderer';
   process.argv = savedArgv.concat(['--estrix-user-data=' + tmp]);
-  const loaderPath = require.resolve('../../src/providers/custom/loader');
-  delete require.cache[loaderPath];
   try {
-    const { loadCustomProviders } = require(loaderPath);
+    // loader 有模块级副作用（加载时读 process.type/argv），
+    // 用 resetModules + 动态 import 让它重新求值
+    vi.resetModules();
+    const { loadCustomProviders } = await import('../../src/providers/custom/loader.js');
     const ps = loadCustomProviders();
     assert.ok(ps.some((p) => p.id === 'demo'), '渲染进程应能加载注入路径下的自定义 Provider');
   } finally {
     process.type = savedType;
     process.argv = savedArgv;
-    delete require.cache[loaderPath];
+    vi.resetModules();
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });

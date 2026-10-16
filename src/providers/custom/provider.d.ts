@@ -3,7 +3,7 @@
  * 用户编写自定义平台 Provider 时，可参考本文件获得类型提示。
  *
  * 使用方式（在用户 JS 文件顶部）：
- *   /** @type {import('./custom/provider.d.ts').Provider} */
+ *   // @type {import('./custom/provider.d.ts').Provider}
  *   module.exports = { ... }
  */
 

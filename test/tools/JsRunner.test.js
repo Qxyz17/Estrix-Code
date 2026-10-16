@@ -1,8 +1,8 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { JsRunner } = require('../../tools/JsRunner');
-const { registry } = require('../../tools');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { JsRunner } from '../../src/tools/runtime/JsRunner.js';
+import { registry } from '../../src/tools/index.js';
 
 test('JsRunner 执行简单 JS 代码', async () => {
   const runner = new JsRunner(registry);
@@ -45,3 +45,20 @@ test('JsRunner 未知工具报错', async () => {
   assert.strictEqual(r.success, false);
   assert.ok(r.error);
 });
+
+test('JsRunner 沙箱支持 sleep', async () => {
+  const runner = new JsRunner(registry);
+  const t0 = Date.now();
+  const r = await runner.run('await sleep(50); log("done");', process.cwd());
+  assert.strictEqual(r.success, true);
+  assert.ok(r.output.includes('done'));
+  assert.ok(Date.now() - t0 >= 40);
+});
+
+test('JsRunner 沙箱支持 setTimeout', async () => {
+  const runner = new JsRunner(registry);
+  const r = await runner.run('await new Promise(res => setTimeout(() => { log("timed"); res(); }, 30));', process.cwd());
+  assert.strictEqual(r.success, true);
+  assert.ok(r.output.includes('timed'));
+});
+

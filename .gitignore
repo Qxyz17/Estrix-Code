@@ -28,28 +28,39 @@ logs/
 # User data (contains session/cookies)
 userData/
 
-# Account & session data (cookies/login state)
-session-dir-map-*.json
-profile-list.json
-Partitions/
-
-# Electron build artifacts
-*.blockmap
-latest*.yml
-
-# Rust / Tauri
-native/src-tauri/target/
-native/src-tauri/gen/schemas/
-
 # Temp
 *.tmp
 temp/
-test/tmp/
+
+# 打包用的运行时二进制（uv/node，本地下载，不进仓库）
+resources/runtime/
 
 # Project specific
-.estrixCode/
+# 工具结果运行时产物（每次执行生成，不进仓库）
+.estrix/tool-results/
+# .estrixCode/ 是各项目的工具目录，通常不提交；但本项目自身的约束文件 ESTRIX.md 例外
+.estrixCode/*
+!.estrixCode/ESTRIX.md
 .claude/
+
+# .estrix/ 下的本地运行时配置（各人不同，不进仓库）
+.estrix/mcp.json
+.estrix/mcp-state.json
+# 各人安装的插件（含大体积模型/资源，不进仓库）
+.estrix/plugins/
+
+# Playwright MCP 产物（快照/截图）
+.playwright-mcp/
 
 # Coverage reports
 coverage.lcov
 test/coverage.lcov
+coverage/
+/wyp/
+/dist-verify/
+
+# 自定义 Provider 文件（各人私有，不进仓库）
+custom-providers/
+# Monaco（体积大，不进仓库；由 scripts/copy-monaco.mjs 从 node_modules 复制）
+src/ui/vendor/monaco/
+

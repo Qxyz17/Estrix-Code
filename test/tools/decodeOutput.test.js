@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { decodeOutput, normalizeCommand } = require('../../tools/decodeOutput');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { decodeOutput, normalizeCommand } from '../../src/infra/decode-output.js';
 
 test('decodeOutput 空/无输入返回空串', () => {
   assert.strictEqual(decodeOutput(null), '');
@@ -60,3 +60,4 @@ test('normalizeCommand 无 Get-Content 不动', () => {
   const cmd = 'powershell Get-ChildItem';
   assert.strictEqual(normalizeCommand(cmd), cmd);
 });
+

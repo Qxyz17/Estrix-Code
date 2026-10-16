@@ -1,0 +1,153 @@
+/**
+ * 子代理运行器（主进程侧编排）
+ *
+ * 流程：创建子代理窗口 → 等加载 → 导航到新对话 → 注入提示词+任务
+ *      → 等子代理回复完成（无工具调用）→ 取最终文本 → 关闭窗口 → 返回
+ *
+ * 依赖注入：createWindow / profileManager 由 entry.ts 注入，避免循环依赖。
+ */
+import * as windowState from './window.js';
+
+type CreateWindowFn = (profile: any) => number;
+
+let _createWindow: CreateWindowFn | null = null;
+let _profileManager: any = null;
+
+/** 由 entry.ts 注入依赖 */
+export function injectSubagentDeps(deps: { createWindow: CreateWindowFn; profileManager: any }): void {
+  _createWindow = deps.createWindow;
+  _profileManager = deps.profileManager;
+}
+
+/** 等待子代理完成的回调注册表：windowId → resolve */
+const pending = new Map<number, (text: string) => void>();
+
+/** 每个 profile 正在跑的子代理数量（用于飞书消息拦截等） */
+const runningByProfile = new Map<string, number>();
+
+/** 该 profile 是否有子代理正在运行 */
+export function hasRunningSubagent(profileId: string): boolean {
+  return !!profileId && (runningByProfile.get(profileId) || 0) > 0;
+}
+
+function incRunning(profileId: string): void {
+  if (!profileId) return;
+  runningByProfile.set(profileId, (runningByProfile.get(profileId) || 0) + 1);
+}
+function decRunning(profileId: string): void {
+  if (!profileId) return;
+  const n = (runningByProfile.get(profileId) || 0) - 1;
+  if (n <= 0) runningByProfile.delete(profileId);
+  else runningByProfile.set(profileId, n);
+}
+
+/** bridge 侧检测到子代理完成时调用（IPC 入口） */
+export function onSubagentResponse(windowId: number, text: string): void {
+  const resolve = pending.get(windowId);
+  if (resolve) {
+    pending.delete(windowId);
+    resolve(text || '');
+  }
+}
+
+/** 等子代理回复完成（超时兜底） */
+function waitForDone(windowId: number, timeoutMs: number): Promise<string> {
+  return new Promise((resolve) => {
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      pending.delete(windowId);
+      resolve('__SUBAGENT_TIMEOUT__');
+    }, timeoutMs);
+    pending.set(windowId, (text) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(text);
+    });
+  });
+}
+
+/**
+ * 运行一个子代理。
+ * @param parentProfileId 父窗口 profile id（决定 partition）
+ * @param agentName 代理名
+ * @param task 任务描述
+ * @param systemPrompt 代理系统提示（正文）
+ * @param tools 允许的工具（可选，空=全部）
+ * @param timeoutMs 超时
+ * @returns 子代理最终文本
+ */
+export async function runAgent(opts: {
+  parentProfileId: string;
+  parentWindowId: number;
+  agentName: string;
+  task: string;
+  systemPrompt: string;
+  tools?: string[];
+  maxTurns?: number;
+  timeoutMs?: number;
+}): Promise<string> {
+  if (!_createWindow || !_profileManager) throw new Error('子代理依赖未注入');
+  const timeoutMs = opts.timeoutMs || 600000; // 默认 10 分钟
+
+  // 取父窗口的项目目录 + providerId（用于构建工具系统提示）
+  const parentCtx = windowState.getWindowContext(opts.parentWindowId);
+  const parentStore = parentCtx ? parentCtx.sessionStore : null;
+  const projectDir = parentStore ? parentStore.state.selectedProjectDir : null;
+  const providerId = (parentCtx && parentCtx.providerId) || 'deepseek';
+  // 父会话 ID（发起子代理的那个对话；为 null 时血缘记不了）
+  const parentSessionId = (parentStore && parentStore.state && parentStore.state.currentSessionId) || null;
+
+  // 创建子代理窗口（复用父 partition）
+  const parent = _profileManager.getProfileById(opts.parentProfileId);
+  if (!parent) throw new Error('父 profile 不存在: ' + opts.parentProfileId);
+  const subProfile = _profileManager.createSubagentProfile(parent, opts.agentName);
+  subProfile.subagentConfig = {
+    agentName: opts.agentName,
+    task: opts.task,
+    systemPrompt: opts.systemPrompt,
+    tools: opts.tools || null,
+    maxTurns: opts.maxTurns || null,
+    projectDir: projectDir || null, // 传给子代理窗口，供 overlay 显示"当前项目目录"
+  };
+  console.log('[子代理] 启动 ' + opts.agentName + ' (父窗口 ' + opts.parentWindowId + ', 项目目录 ' + (projectDir || '无') + ')');
+  incRunning(opts.parentProfileId);
+  const windowId = _createWindow(subProfile);
+
+  // 关键：把父窗口的项目目录写入子代理窗口的 sessionStore，
+  // 否则子代理执行工具（execute-js 从 ctx.sessionStore.state.selectedProjectDir 取）
+  // 时 projectDir 为 null，相对路径/初始化状态都会错。
+  try {
+    const subCtx = windowState.getWindowContext(windowId);
+    if (subCtx && subCtx.sessionStore) {
+      if (projectDir) subCtx.sessionStore.state.selectedProjectDir = projectDir;
+      // 血缘：子代理对话 -> 父对话（会话 ID 出现时自动绑定）
+      if (parentSessionId) {
+        subCtx.sessionStore.state.pendingLineage = { parentId: parentSessionId, kind: 'subagent', agentName: opts.agentName };
+      }
+    }
+  } catch (_) { /* ignore */ }
+
+  // 提示词由子代理窗口自己调 initProject 生成（复用初始化流程）
+  try {
+    const text = await waitForDone(windowId, timeoutMs);
+    if (text === '__SUBAGENT_TIMEOUT__') throw new Error('子代理执行超时');
+    return text;
+  } finally {
+    decRunning(opts.parentProfileId);
+    // 关闭子代理窗口
+    try {
+      const ctx = windowState.getWindowContext(windowId);
+      if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.close();
+    } catch (_) { /* ignore */ }
+    // 通知父窗口刷新工作区列表（子代理的会话/血缘已写入账本）
+    try {
+      const parentCtx = windowState.getWindowContext(opts.parentWindowId);
+      if (parentCtx && parentCtx.win && !parentCtx.win.isDestroyed()) {
+        parentCtx.win.webContents.send('shell-sessions-changed');
+      }
+    } catch (_) { /* ignore */ }
+  }
+}

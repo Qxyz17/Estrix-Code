@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseEditArgs, formatEditOutput, formatDryRunOutput } = require('../../tools/EditTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseEditArgs, formatEditOutput, formatDryRunOutput } from '../../src/tools/impl/edit.js';
 
 test('parseEditArgs 正常', () => {
   assert.deepStrictEqual(parseEditArgs('a.txt', 'old', 'new', false), { filePath: 'a.txt', oldString: 'old', newString: 'new', replaceAll: false, dryRun: false });
@@ -14,20 +14,20 @@ test('parseEditArgs 正常', () => {
 });
 
 test('parseEditArgs 空 filePath', () => {
-  assert.throws(() => parseEditArgs('', 'o', 'n', false), /file_path must be a non-empty string/);
+  assert.throws(() => parseEditArgs('', 'o', 'n', false), /filePath must be a non-empty string/);
 });
 
-test('parseEditArgs 空 old_string', () => {
-  assert.throws(() => parseEditArgs('a.txt', '', 'n', false), /old_string must be a non-empty string/);
-  assert.throws(() => parseEditArgs('a.txt', null, 'n', false), /old_string must be a non-empty string/);
+test('parseEditArgs 空 oldString', () => {
+  assert.throws(() => parseEditArgs('a.txt', '', 'n', false), /oldString must be a non-empty string/);
+  assert.throws(() => parseEditArgs('a.txt', null, 'n', false), /oldString must be a non-empty string/);
 });
 
-test('parseEditArgs new_string 非字符串', () => {
-  assert.throws(() => parseEditArgs('a.txt', 'o', 123, false), /new_string must be a string/);
+test('parseEditArgs newString 非字符串', () => {
+  assert.throws(() => parseEditArgs('a.txt', 'o', 123, false), /newString must be a string/);
 });
 
 test('parseEditArgs old === new 抛错', () => {
-  assert.throws(() => parseEditArgs('a.txt', 'same', 'same', false), /old_string and new_string must differ/);
+  assert.throws(() => parseEditArgs('a.txt', 'same', 'same', false), /oldString and newString must differ/);
 });
 
 test('formatEditOutput 唯一/全部替换', () => {
@@ -46,6 +46,7 @@ test('formatDryRunOutput 预览', () => {
   assert.match(formatDryRunOutput('a.txt', 'x', 'y', 3, true), /将全部替换 3 处/);
   // 非 replaceAll 时始终显示将替换 1 处，即使 occurrences 大于 1
   assert.match(formatDryRunOutput('a.txt', 'x', 'y', 3, false), /将替换 1 处/);
-  // 删除场景（空 new_string）
+  // 删除场景（空 newString）
   assert.match(formatDryRunOutput('a.txt', 'x', '', 1, false), /old: "x" → new: ""/);
 });
+

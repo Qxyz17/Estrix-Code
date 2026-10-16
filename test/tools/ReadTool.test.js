@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT, READ_MAX_LINE_LENGTH, READ_MAX_BYTES } = require('../../tools/ReadTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseReadArgs, buildWindow, formatReadOutput, READ_LIMIT } from '../../src/tools/impl/read.js';
 
 test('parseReadArgs 默认值', () => {
   const r = parseReadArgs('a.txt', undefined, undefined);
@@ -13,8 +13,8 @@ test('parseReadArgs 自定义正整数', () => {
 });
 
 test('parseReadArgs 空路径抛错', () => {
-  assert.throws(() => parseReadArgs('', 1, 10), /file_path must be a non-empty string/);
-  assert.throws(() => parseReadArgs(null, 1, 10), /file_path must be a non-empty string/);
+  assert.throws(() => parseReadArgs('', 1, 10), /filePath must be a non-empty string/);
+  assert.throws(() => parseReadArgs(null, 1, 10), /filePath must be a non-empty string/);
 });
 
 test('parseReadArgs offset 非法', () => {
@@ -87,3 +87,4 @@ test('formatReadOutput 无行仅有 footer', () => {
   const s = formatReadOutput('f.txt', out);
   assert.match(s, /\(End of file/);
 });
+

@@ -1,11 +1,10 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { ReadLinesTool } = require('../../tools/ReadLinesTool');
-const { READ_LIMIT } = require('../../tools/ReadTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { ReadLinesTool } from '../../src/tools/impl/read-lines.js';
 
 function makeTmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'estrix-readlines-'));
@@ -17,7 +16,7 @@ test('ReadLinesTool 返回结构化行', async () => {
   fs.writeFileSync(file, ['line1', 'line2', 'line3'].join('\n'), 'utf8');
 
   const tool = new ReadLinesTool();
-  const r = await tool.execute({ file_path: file });
+  const r = await tool.execute({ filePath: file });
 
   assert.strictEqual(r.success, true);
   assert.strictEqual(r.data.totalLines, 3);
@@ -33,7 +32,7 @@ test('ReadLinesTool offset/limit 分段', async () => {
   fs.writeFileSync(file, ['a', 'b', 'c', 'd', ''].join('\n'), 'utf8');
 
   const tool = new ReadLinesTool();
-  const r = await tool.execute({ file_path: file, offset: 2, limit: 2 });
+  const r = await tool.execute({ filePath: file, offset: 2, limit: 2 });
 
   assert.strictEqual(r.success, true);
   assert.strictEqual(r.data.totalLines, 5);
@@ -45,7 +44,7 @@ test('ReadLinesTool offset/limit 分段', async () => {
 
 test('ReadLinesTool 文件不存在', async () => {
   const tool = new ReadLinesTool();
-  const r = await tool.execute({ file_path: path.join(os.tmpdir(), 'nonexistent-xyz.txt') });
+  const r = await tool.execute({ filePath: path.join(os.tmpdir(), 'nonexistent-xyz.txt') });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /文件不存在/);
 });
@@ -55,7 +54,7 @@ test('ReadLinesTool 相对路径 + projectDir', async () => {
   fs.writeFileSync(path.join(dir, 'rel.txt'), ['x', 'y', ''].join('\n'), 'utf8');
 
   const tool = new ReadLinesTool();
-  const r = await tool.execute({ file_path: 'rel.txt', projectDir: dir });
+  const r = await tool.execute({ filePath: 'rel.txt', projectDir: dir });
 
   assert.strictEqual(r.success, true);
   assert.strictEqual(r.data.lines.length, 3);
@@ -68,7 +67,8 @@ test('ReadLinesTool offset 越界', async () => {
   fs.writeFileSync(file, 'only one line', 'utf8');
 
   const tool = new ReadLinesTool();
-  const r = await tool.execute({ file_path: file, offset: 99 });
+  const r = await tool.execute({ filePath: file, offset: 99 });
   assert.strictEqual(r.success, false);
   assert.match(r.error, /out of range/);
 });
+

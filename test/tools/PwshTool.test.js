@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { PwshTool, DANGEROUS_PWSH_CMDS } = require('../../tools/PwshTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { PwshTool, DANGEROUS_PWSH_CMDS } from '../../src/tools/impl/pwsh.js';
 
 test('DANGEROUS_PWSH_CMDS 定义完整', () => {
   assert.ok(Array.isArray(DANGEROUS_PWSH_CMDS));
@@ -36,3 +36,4 @@ test('PwshTool 空描述不拒绝', async () => {
   const r = await tool.execute({ command: 'Write-Output hi', description: '' });
   assert.strictEqual(r.success, true);
 });
+

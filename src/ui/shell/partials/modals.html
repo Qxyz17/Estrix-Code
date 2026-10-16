@@ -1,0 +1,93 @@
+          <div class="ck-modal-mask estrix-hidden" id="snip-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title" id="snip-modal-title">编辑提示词</span>
+              <div class="ck-field">
+                <span class="ck-field-label">名称</span>
+                <input class="ck-input" id="snip-name" placeholder="如：生成项目说明" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">内容</span>
+                <textarea class="ck-textarea" id="snip-content" placeholder="点击后将填入输入框的文本"></textarea>
+              </div>
+              <div class="ck-auto-head">
+                <span class="ck-field-label">自动发送</span>
+                <label class="ck-switch">
+                  <input type="checkbox" id="snip-autosend" checked />
+                  <span class="ck-switch-track"></span>
+                </label>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="snip-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="snip-save">保存</button>
+              </div>
+            </div>
+          </div>
+          <!-- 新建/编辑子代理弹窗 -->
+          <div class="ck-modal-mask estrix-hidden" id="agent-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title" id="agent-modal-title">新建子代理</span>
+              <div class="ck-field">
+                <span class="ck-field-label">名称</span>
+                <input class="ck-input" id="agent-name" placeholder="如：code-reviewer（英文）" />
+              </div>
+              <div class="ck-field" id="agent-scope-field">
+                <span class="ck-field-label">位置</span>
+                <select class="ck-input" id="agent-scope">
+                  <option value="project">项目级（.estrix/agents/）</option>
+                  <option value="user">用户级（~/.estrix/agents/）</option>
+                </select>
+              </div>
+              <p class="ck-about-tip" id="agent-modal-tip">生成模板后，会用系统默认程序打开，你直接编辑保存即可。</p>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary estrix-hidden" id="agent-open-file">打开正文</button>
+                <button class="ck-btn ck-btn-secondary" id="agent-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="agent-create">创建并打开</button>
+              </div>
+            </div>
+          </div>
+          <!-- 窗口组管理弹窗 -->
+          <div class="ck-modal-mask estrix-hidden" id="wg-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title">管理窗口组</span>
+              <div class="ck-field">
+                <span class="ck-field-label">组名</span>
+                <input class="ck-input" id="wg-modal-name" placeholder="组名" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">组内窗口（按顺序轮换）</span>
+                <div class="ck-wg-members" id="wg-modal-members"></div>
+              </div>
+              <div class="ck-field" id="wg-modal-add-wrap">
+                <span class="ck-field-label">添加窗口</span>
+                <select class="ck-input" id="wg-modal-add"></select>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="wg-modal-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="wg-modal-save">保存</button>
+              </div>
+            </div>
+          </div>
+          <!-- 通用输入弹窗（重命名会话等） -->
+          <div class="ck-modal-mask estrix-hidden" id="input-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title" id="input-modal-title">重命名</span>
+              <div class="ck-field">
+                <input class="ck-input" id="input-modal-value" placeholder="" />
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="input-modal-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="input-modal-ok">确定</button>
+              </div>
+            </div>
+          </div>
+          <!-- 通用弹框（替代原生 alert/confirm） -->
+          <div class="ck-modal-mask estrix-hidden" id="ck-dialog">
+            <div class="ck-modal ck-dialog">
+              <span class="ck-modal-title" id="ck-dialog-title">提示</span>
+              <div class="ck-dialog-msg" id="ck-dialog-msg"></div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary estrix-hidden" id="ck-dialog-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="ck-dialog-ok">确定</button>
+              </div>
+            </div>
+          </div>

@@ -1,0 +1,167 @@
+/* ===== 目录 ===== */
+  .ck-dir-path {
+    font-family: "SF Mono", "Consolas", monospace; font-size: 11.5px;
+    color: var(--ck-text-2); word-break: break-all;
+    background: var(--ck-surface); padding: 6px 9px; border-radius: 7px;
+    line-height: 1.5;
+  }
+  .ck-mini-btn {
+    background: var(--ck-primary-soft); border: none; color: var(--ck-primary);
+    padding: 4px 12px; border-radius: 999px; cursor: pointer;
+    font-size: 11px; font-weight: 600; flex-shrink: 0; transition: all .15s;
+    font-family: inherit;
+  }
+  .ck-mini-btn:hover { background: var(--ck-primary); color: #fff; }
+
+  /* ===== Token 页 ===== */
+  .ck-token-hero {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 24px 0 20px;
+    background: linear-gradient(160deg, var(--ck-primary-soft), transparent);
+    border-radius: 14px;
+  }
+  .ck-token-hero-label { font-size: 10.5px; color: var(--ck-text-dim); letter-spacing: .6px; font-weight: 600; }
+  .ck-token-hero-value { display: flex; align-items: baseline; gap: 6px; }
+  .ck-token-hero-value > span:first-child {
+    font-size: 36px; font-weight: 700; color: var(--ck-primary);
+    font-family: "SF Mono", "Consolas", monospace; letter-spacing: -1.2px; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .ck-token-hero-unit { font-size: 12px; color: var(--ck-text-dim); }
+  /* 「万/亿」单位字：用普通字体（等宽字体无中文，会回退导致不协调） */
+  .ck-token-unit-char {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: .72em; font-weight: 600; letter-spacing: 0; margin-left: 1px;
+  }
+  .ck-stat-list {
+    display: flex; flex-direction: column;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-stat-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; font-size: 12.5px;
+  }
+  .ck-stat-item + .ck-stat-item { border-top: 1px solid var(--ck-border); }
+  .ck-stat-key { color: var(--ck-text-2); }
+  .ck-stat-val {
+    color: var(--ck-text); font-weight: 600;
+    font-family: "SF Mono", "Consolas", monospace; font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ck-auto-block {
+    display: flex; flex-direction: column; gap: 13px;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 12px; padding: 14px;
+    box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-auto-head { display: flex; align-items: center; justify-content: space-between; }
+  .ck-auto-body { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ck-text-2); }
+  .ck-auto-body input[type="number"] {
+    width: 56px; background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 7px; padding: 5px 8px; color: var(--ck-text); font-size: 12.5px;
+    text-align: center; font-family: inherit;
+  }
+  .ck-auto-body input[type="number"]:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  /* 开关 */
+  .ck-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+  .ck-switch input { opacity: 0; width: 0; height: 0; }
+  .ck-switch-track {
+    position: absolute; inset: 0; border-radius: 11px;
+    background: var(--ck-border-strong); transition: background .2s; cursor: pointer;
+  }
+  .ck-switch-track::before {
+    content: ''; position: absolute; left: 3px; top: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; transition: transform .2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .ck-switch input:checked + .ck-switch-track { background: var(--ck-primary); }
+  .ck-switch input:checked + .ck-switch-track::before { transform: translateX(16px); }
+  /* 柱状图（横向：左日期 + 右横条） */
+  .ck-chart-block {
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 12px; padding: 14px;
+    box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-chart { display: flex; flex-direction: column; gap: 8px; }
+  .ck-bar-row { display: flex; align-items: center; gap: 10px; }
+  .ck-bar-label {
+    font-size: 10px; color: var(--ck-text-dim); white-space: nowrap;
+    font-family: "SF Mono", "Consolas", monospace; flex-shrink: 0; width: 34px;
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .ck-bar-track {
+    flex: 1; height: 12px; background: var(--ck-surface);
+    border-radius: 6px; overflow: hidden;
+  }
+  .ck-bar {
+    height: 100%; border-radius: 6px;
+    background: var(--ck-primary);
+    opacity: .35;
+    transition: width .3s ease, opacity .15s;
+    min-width: 3px;
+  }
+  .ck-bar-row:hover .ck-bar { opacity: 1; }
+
+  /* ===== 代码/结果 ===== */
+  .ck-code {
+    background: var(--ck-surface); border-radius: 8px; padding: 9px 11px;
+    font-family: "SF Mono", "Consolas", monospace; font-size: 11.5px;
+    color: var(--ck-text-2); line-height: 1.55;
+    max-height: 130px; overflow: auto; white-space: pre-wrap;
+    word-break: break-all; margin: 0;
+  }
+  .ck-task-status { display: inline-flex; align-items: center; gap: 5px; color: var(--ck-primary); font-weight: 600; }
+
+  /* ===== 对话（网页端会话列表） ===== */
+  .ck-conv-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 12.5px; color: var(--ck-text-2); }
+  .ck-conv-item:hover { background: var(--ck-surface-hover); color: var(--ck-text); }
+  .ck-conv-item.ck-conv-active { background: var(--ck-primary-soft); color: var(--ck-primary); }
+  .ck-conv-item.ck-conv-disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+  .ck-conv-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ===== 插件卡片（市场 + 已安装）=====
+     不复用 .ck-snip-preview：那是单行截断的，简介会显示不全。 */
+  .ck-plugin-item { padding: 10px 12px; border-bottom: 1px solid var(--ck-border); }
+  .ck-plugin-item:last-child { border-bottom: none; }
+  .ck-plugin-item:hover { background: var(--ck-surface); }
+  .ck-plugin-head { display: flex; align-items: center; gap: 8px; }
+  .ck-plugin-name {
+    font-size: 13px; font-weight: 600; color: var(--ck-text);
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* 已安装 / 有更新 徽标 */
+  .ck-plugin-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .ck-plugin-badge.on { background: rgba(74, 222, 128, .15); color: var(--ck-green); }
+  .ck-plugin-badge.update { background: rgba(255, 193, 7, .16); color: #ffc107; }
+  .ck-plugin-badge.archived { background: rgba(255, 107, 122, .15); color: var(--ck-red); }
+  /* 简介：多行，允许折行 */
+  .ck-plugin-desc {
+    font-size: 12px; color: var(--ck-text-dim); margin-top: 5px;
+    line-height: 1.55; white-space: normal; word-break: break-word;
+  }
+  /* 元信息行 */
+  .ck-plugin-meta {
+    font-size: 11px; color: var(--ck-text-dim); margin-top: 7px;
+    display: flex; flex-wrap: wrap; gap: 3px 10px; align-items: center;
+  }
+  .ck-plugin-meta .sep { opacity: .4; }
+  /* 版本要求行 */
+  .ck-plugin-req { font-size: 11px; color: var(--ck-text-dim); margin-top: 5px; }
+  .ck-plugin-req.warn { color: #ffc107; }
+  .ck-plugin-req.err { color: var(--ck-text-dim); opacity: .75; }
+  /* 已安装行的开关与操作按钮 */
+  .ck-plugin-switch-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .ck-plugin-switch-label { font-size: 11px; color: var(--ck-text-dim); }
+  /* 插件卡片的操作按钮：**常驻可见**。
+     不要复用 .ck-snip-actions —— 它带 opacity:0 + pointer-events:none，
+     且显示规则绑定在 .ck-snip-item:hover 上；放进 .ck-plugin-item 会永远不可见也点不到。
+     插件卡片的安装/更新/卸载是主要操作，不该藏到悬停里。 */
+  .ck-plugin-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  /* 无配置时的占位：占住 ⚙ 的位置，保证各行开关/按钮对齐 */
+  .ck-snip-icon-placeholder { visibility: hidden; }

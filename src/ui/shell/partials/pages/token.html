@@ -1,0 +1,56 @@
+            <!-- ===== Token ===== -->
+            <div class="ck-tab" data-panel="token">
+              <div class="ck-token-hero">
+                <span class="ck-token-hero-label">当前上下文</span>
+                <div class="ck-token-hero-value">
+                  <span id="tk-context">0</span>
+                  <span class="ck-token-hero-unit">tokens</span>
+                </div>
+              </div>
+              <button class="ck-btn ck-btn-anim" id="tk-compact">
+                <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4M8 7H4M8 7l-4-4"/><path d="M16 21v-4M16 17h4M16 17l4 4"/><path d="M4 14h16"/></svg>
+                <span>压缩上下文</span>
+              </button>
+
+              <div class="ck-stat-list">
+                <div class="ck-stat-item">
+                  <span class="ck-stat-key">对话累计</span>
+                  <span class="ck-stat-val" id="tk-cumulative">0</span>
+                </div>
+                <div class="ck-stat-item">
+                  <span class="ck-stat-key">今日窗口</span>
+                  <span class="ck-stat-val" id="tk-today">0</span>
+                </div>
+                <div class="ck-stat-item">
+                  <span class="ck-stat-key">窗口累计</span>
+                  <span class="ck-stat-val" id="tk-window">0</span>
+                </div>
+                <div class="ck-stat-item">
+                  <span class="ck-stat-key">系统总累计</span>
+                  <span class="ck-stat-val" id="tk-system">0</span>
+                </div>
+              </div>
+
+              <div class="ck-auto-block">
+                <div class="ck-auto-head">
+                  <span class="ck-stat-key">自动压缩</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="tk-auto-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-auto-body">
+                  <span>超过</span>
+                  <input type="number" id="tk-auto-threshold" value="80" min="1" />
+                  <span>万 tokens 时触发</span>
+                </div>
+                <button class="ck-btn ck-btn-anim" id="tk-auto-save">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                  <span>保存设置</span>
+                </button>
+              </div>
+
+              <div class="ck-chart-block">
+                <div class="ck-chart" id="tk-chart"></div>
+              </div>
+            </div>

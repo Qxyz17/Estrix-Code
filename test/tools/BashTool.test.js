@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { BashTool, DANGEROUS_CMDS } = require('../../tools/BashTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { BashTool, DANGEROUS_CMDS } from '../../src/tools/impl/bash.js';
 
 test('DANGEROUS_CMDS 定义完整', () => {
   assert.ok(Array.isArray(DANGEROUS_CMDS));
@@ -46,3 +46,4 @@ test('BashTool 非字符串命令拒绝', async () => {
   const r = await tool.execute({ command: 123, description: 'test' });
   assert.strictEqual(r.success, false);
 });
+

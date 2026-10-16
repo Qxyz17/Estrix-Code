@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseFetchArgs, formatFetchOutput } = require('../../tools/WebFetchTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseFetchArgs, formatFetchOutput } from '../../src/tools/impl/web-fetch.js';
 
 test('parseFetchArgs 正常', () => {
   assert.deepStrictEqual(parseFetchArgs('https://example.com'), { url: 'https://example.com' });
@@ -36,3 +36,4 @@ test('formatFetchOutput 显式 truncated 参数', () => {
   const out = formatFetchOutput('https://example.com', 200, 'text', 'abc', true);
   assert.match(out, /\(Content truncated/);
 });
+

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>飞书同步配置教程 - Estrix Code</title>
+<style>
+  :root {
+    --bg: #16181d; --card: #1e2128; --border: #2c3038;
+    --text: #e4e6eb; --text-2: #a8adba; --text-dim: #757b8a;
+    --primary: #6d76ff; --green: #4ade80;
+    --mono: "SF Mono", Consolas, "Cascadia Code", monospace;
+    --sans: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 28px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+  h2 { font-size: 19px; margin: 38px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h2 .num { color: var(--primary); font-family: var(--mono); font-size: 17px; margin-right: 8px; }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  p, li { color: var(--text-2); }
+  strong { color: var(--text); }
+  a { color: var(--primary); }
+  code { font-family: var(--mono); font-size: 13px; background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 5px; color: #c7cbff; }
+  pre { background: #0f1115; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+  pre code { background: none; padding: 0; color: #c7cbff; }
+  .tip { background: rgba(109,118,255,.08); border-left: 3px solid var(--primary); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: 14px; color: var(--text-2); }
+  .warn { background: rgba(255,180,60,.08); border-left: 3px solid #f5a623; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: 14px; color: var(--text-2); }
+  .ok { background: rgba(74,222,128,.08); border-left: 3px solid var(--green); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: 14px; color: var(--text-2); }
+  img { max-width: 100%; border: 1px solid var(--border); border-radius: 10px; margin: 12px 0; display: block; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 40px; margin-bottom: 12px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 10px; }
+  .toc-title { font-weight: 600; margin-bottom: 8px; }
+  .toc ol { margin: 0; padding-left: 22px; columns: 2; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 12px; border: 1px solid var(--border); }
+  th { background: var(--card); color: var(--text); font-weight: 600; }
+  td { color: var(--text-2); }
+  .foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>飞书同步配置教程</h1>
+  <div class="sub">配置后，手机飞书就能收发 Estrix Code 的对话 · 全程约 10 分钟 · 免费</div>
+
+  <div class="toc">
+    <div class="toc-title">目录</div>
+    <ol>
+      <li><a href="#s1">注册飞书账号</a></li>
+      <li><a href="#s2">创建"企业自建应用"</a></li>
+      <li><a href="#s3">获取 App ID / App Secret</a></li>
+      <li><a href="#s4">添加"机器人"能力</a></li>
+      <li><a href="#s5">开通权限</a></li>
+      <li><a href="#s6">配置事件订阅（关键）</a></li>
+      <li><a href="#s7">发布应用</a></li>
+      <li><a href="#s8">在 Estrix 里填写凭证</a></li>
+      <li><a href="#s9">在飞书里给机器人发消息</a></li>
+      <li><a href="#s10">完成</a></li>
+    </ol>
+  </div>
+
+  <h2 id="s1"><span class="num">1</span>注册飞书账号</h2>
+  <ol class="steps">
+    <li>打开 <a href="https://www.feishu.cn/" target="_blank">https://www.feishu.cn/</a> → 用手机号注册（免费）</li>
+    <li>注册时会让你创建一个组织/团队（随便起名，个人可用，<strong>不需企业认证</strong>）</li>
+  </ol>
+
+  <h2 id="s2"><span class="num">2</span>创建"企业自建应用"</h2>
+  <ol class="steps">
+    <li>打开 <a href="https://open.feishu.cn/app" target="_blank">https://open.feishu.cn/app</a> → 用刚注册的账号登录</li>
+    <li>点「<strong>创建企业自建应用</strong>」</li>
+    <li>填应用名称（如 <code>Estrix</code>）、图标随意 → <strong>创建</strong></li>
+  </ol>
+  <img src="feishu-images/01-app-list.png" alt="应用列表" />
+
+  <h2 id="s3"><span class="num">3</span>获取 App ID / App Secret</h2>
+  <ol class="steps">
+    <li>进入应用后，左侧点「<strong>凭证与基础信息</strong>」</li>
+    <li>复制这两个值（等下要填进 Estrix）：
+      <ul>
+        <li><strong>App ID</strong>（如 <code>cli_xxxxxx</code>）</li>
+        <li><strong>App Secret</strong>（点「查看」）</li>
+      </ul>
+    </li>
+  </ol>
+  <img src="feishu-images/02-credentials.png" alt="凭证与基础信息" />
+
+  <h2 id="s4"><span class="num">4</span>添加"机器人"能力</h2>
+  <ol class="steps">
+    <li>左侧点「<strong>添加应用能力</strong>」</li>
+    <li>找到「<strong>机器人</strong>」→ 点「<strong>添加</strong>」</li>
+  </ol>
+  <img src="feishu-images/03-capability.png" alt="添加应用能力" />
+
+  <h2 id="s5"><span class="num">5</span>开通权限</h2>
+  <ol class="steps">
+    <li>左侧点「<strong>权限管理</strong>」</li>
+    <li>搜索并开通以下权限：
+      <ul>
+        <li><code>im:message</code>（获取与发送单聊、群组消息）</li>
+        <li><code>im:message:send_as_bot</code>（以应用身份发消息）</li>
+        <li><code>im:message.p2p_msg:readonly</code>（读取单聊消息）</li>
+        <li><code>im:message.group_msg</code>（读取群消息，用于接收群里所有消息）</li>
+        <li><code>im:chat:readonly</code>（查询机器人所在的群列表）</li>
+      </ul>
+    </li>
+  </ol>
+  <img src="feishu-images/05-auth.png" alt="权限管理" />
+
+  <h2 id="s6"><span class="num">6</span>配置事件订阅（关键！）</h2>
+  <div class="warn">⚠️ 这是最容易漏的一步。配错会导致"能发不能收"，或飞书里没有输入框。</div>
+  <ol class="steps">
+    <li>左侧点「<strong>事件与回调</strong>」→ 选「<strong>事件配置</strong>」</li>
+    <li>「订阅方式」→ 选「<strong>使用长连接接收事件</strong>」（<strong>不是</strong>"发送到开发者服务器"）→ 点「<strong>保存</strong>」</li>
+    <li>「已添加事件」→ 点「<strong>添加事件</strong>」→ 搜「<strong>接收消息</strong>」→ 添加 <code>im.message.receive_v1</code></li>
+  </ol>
+  <img src="feishu-images/06-event.png" alt="事件与回调" />
+  <div class="tip">💡 长连接的好处：<strong>不需要公网 IP、不需要服务器</strong>，普通电脑直接可用。</div>
+
+  <h2 id="s7"><span class="num">7</span>发布应用</h2>
+  <ol class="steps">
+    <li>左侧点「<strong>版本管理与发布</strong>」</li>
+    <li>点「<strong>创建版本</strong>」→ 填版本号（如 <code>1.0.0</code>）→「<strong>申请发布</strong>」</li>
+    <li>你是管理员 → 审批通过（秒过）</li>
+  </ol>
+  <img src="feishu-images/07-version.png" alt="版本管理与发布" />
+  <div class="warn">⚠️ 改了上面<strong>任何配置</strong>，都要重新「创建版本 + 发布」，否则不生效！</div>
+
+  <h2 id="s8"><span class="num">8</span>在 Estrix 里填写凭证</h2>
+  <ol class="steps">
+    <li>回到 Estrix Code，点左侧活动栏的「<strong>飞书</strong>」图标（气泡）</li>
+    <li>填入 <strong>App ID</strong> 和 <strong>App Secret</strong></li>
+    <li>打开「<strong>启用飞书同步</strong>」开关</li>
+    <li>点「<strong>保存并连接</strong>」</li>
+    <li>状态应变「<strong>已连接</strong>」（绿点）</li>
+  </ol>
+
+  <h2 id="s9"><span class="num">9</span>建群 + 绑定到窗口</h2>
+  <div class="warn">⚠️ <strong>每个窗口绑定一个飞书群</strong>，对话互不干扰。没绑群的窗口，飞书功能关闭。</div>
+  <ol class="steps">
+    <li>打开<strong>飞书 App</strong>（手机/电脑）→ 新建一个群（如"Estrix 项目A"）</li>
+    <li>把<strong>机器人</strong>拉进这个群</li>
+    <li>回到 Estrix，在对应<strong>窗口</strong>里打开「飞书」页</li>
+    <li>点「<strong>刷新群列表</strong>」→ 在「飞书群」下拉里选中刚建的群 → 自动绑定</li>
+    <li>状态变「<strong>已绑定：xxx</strong>」即成功</li>
+  </ol>
+  <div class="tip">💡 开多个窗口时，给每个窗口建一个不同的群，各绑各的，消息不会串。<br>
+  在群里发消息（可直接发，无需 @ 机器人），就会送到绑定该群的窗口。</div>
+
+  <h2 id="s10"><span class="num">10</span>完成！</h2>
+  <table>
+    <tr><th>操作</th><th>效果</th></tr>
+    <tr><td>Estrix 里发消息</td><td>飞书收到「👤 我：xxx」</td></tr>
+    <tr><td>AI 回复</td><td>飞书收到「🤖 AI：xxx」（纯对话）</td></tr>
+    <tr><td>AI 调用工具</td><td>飞书收到「🔧 调用中 / ✅ 完成」</td></tr>
+    <tr><td><strong>在飞书群里发消息</strong></td><td><strong>发给绑定该群的窗口的 AI</strong></td></tr>
+  </table>
+
+  <h3>常见问题</h3>
+  <p><strong>Q：状态一直"连接中"？</strong><br>
+  检查 App ID / App Secret 是否正确；检查第 6 步「订阅方式」是否选了「使用长连接」。</p>
+  <p><strong>Q：飞书收不到消息？</strong><br>
+  检查该窗口是否<strong>已绑定群</strong>；检查第 9 步机器人是否在群里；检查是否开了 <code>im:message.group_msg</code> 权限。</p>
+  <p><strong>Q：多窗口消息串了？</strong><br>
+  每个窗口要绑定<strong>不同的群</strong>；一个群只能绑一个窗口。</p>
+  <p><strong>Q：找不到机器人 / 没有输入框？</strong><br>
+  检查第 6 步「事件订阅」是否配了 <code>im.message.receive_v1</code>；检查第 7 步是否<strong>已发布</strong>；检查应用「可用范围」是否包含你自己。</p>
+  <p><strong>Q：改了配置不生效？</strong><br>
+  <strong>必须重新创建版本 + 发布</strong>（第 7 步）。</p>
+
+  <div class="foot">Estrix Code · 飞书同步配置教程</div>
+</div>
+</body>
+</html>

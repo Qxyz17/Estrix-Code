@@ -1,7 +1,10 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES } = require('../../tools/GlobToolNew');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parseGlobArgs, formatGlobOutput, buildGlobArgs, MAX_RESULTS, GLOB_VCS_EXCLUDES, GLOB_ARTIFACT_EXCLUDES, buildIgnoreNote } from '../../src/tools/impl/glob.js';
 
 test('parseGlobArgs 正常', () => {
   assert.deepStrictEqual(parseGlobArgs('**/*.js', undefined), { pattern: '**/*.js' });
@@ -13,9 +16,10 @@ test('parseGlobArgs 空 pattern 抛错', () => {
   assert.throws(() => parseGlobArgs(null, undefined), /pattern must be a non-empty string/);
 });
 
-test('parseGlobArgs path 非法', () => {
-  assert.throws(() => parseGlobArgs('*', ''), /path must be a non-empty string when given/);
-  assert.throws(() => parseGlobArgs('*', 123), /path must be a non-empty string when given/);
+test('parseGlobArgs path 空串视为未提供', () => {
+  assert.deepStrictEqual(parseGlobArgs('*', ''), { pattern: '*' });
+  assert.deepStrictEqual(parseGlobArgs('*', '   '), { pattern: '*' });
+  assert.throws(() => parseGlobArgs('*', 123), /path must be a string when given/);
 });
 
 test('buildGlobArgs 无 path', () => {
@@ -55,3 +59,54 @@ test('formatGlobOutput 截断', () => {
 test('MAX_RESULTS 为 100', () => {
   assert.strictEqual(MAX_RESULTS, 100);
 });
+
+// ===== 产物目录排除（P1：默认遍历 node_modules）=====
+test('buildGlobArgs 无 path 时排除产物目录', () => {
+  const args = buildGlobArgs({ pattern: '*.ts' });
+  for (const name of GLOB_ARTIFACT_EXCLUDES) {
+    assert.ok(args.includes('--glob=!**/' + name), 'missing !**/' + name);
+    assert.ok(args.includes('--glob=!**/' + name + '/**'), 'missing !**/' + name + '/**');
+  }
+  assert.ok(args.includes('--glob=!**/node_modules'));
+  assert.ok(args.includes('--glob=!**/node_modules/**'));
+});
+
+test('buildGlobArgs 显式 path 时不排除产物目录', () => {
+  const args = buildGlobArgs({ pattern: '*.ts', path: 'src' });
+  assert.ok(!args.some(a => a.startsWith('--glob=!**/node_modules')));
+});
+
+test('GLOB_ARTIFACT_EXCLUDES 含常见产物目录', () => {
+  for (const name of ['node_modules', 'dist', 'out', 'build']) {
+    assert.ok(GLOB_ARTIFACT_EXCLUDES.includes(name), 'missing ' + name);
+  }
+});
+
+// ===== 忽略提示（让 AI 知道哪些目录被忽略了）=====
+test('buildIgnoreNote：存在被忽略的目录 → 提示列出', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'estrix-glob-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'node_modules'));
+    fs.mkdirSync(path.join(dir, 'dist'));
+    fs.mkdirSync(path.join(dir, 'src')); // 非忽略目录，不该出现
+    const note = buildIgnoreNote(dir);
+    assert.ok(note.includes('node_modules'));
+    assert.ok(note.includes('dist'));
+    assert.ok(!note.includes('src'));
+    assert.ok(note.includes('path'));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('buildIgnoreNote：无被忽略的目录 → 空串', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'estrix-glob-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'src'));
+    assert.strictEqual(buildIgnoreNote(dir), '');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+

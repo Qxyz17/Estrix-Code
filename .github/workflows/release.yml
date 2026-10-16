@@ -15,11 +15,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            command: build:win
+            command: build:win:local
           - os: macos-latest
-            command: build:mac
-          - os: ubuntu-latest
-            command: build:linux
+            command: build:mac:local
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -36,90 +34,62 @@ jobs:
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
-      - name: Install Linux packaging deps
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot libarchive-tools rpm
-
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and Publish
-        run: npm run ${{ matrix.command }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 缓存自带运行时（uv/node），版本没变则跳过下载
+      - name: Cache runtime binaries
+        uses: actions/cache@v4
+        with:
+          path: resources/runtime
+          key: runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/runtime-versions.json') }}
 
-  release-notes:
+      - name: Fetch runtime binaries
+        run: node scripts/fetch-runtime.mjs
+
+      # 只构建，不发布（发布统一由下方 publish job 负责，避免多 job 各建一个 release）
+      - name: Build
+        run: npm run ${{ matrix.command }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/*.zip
+            dist/*.dmg
+            dist/latest*.yml
+          retention-days: 30
+
+  # 统一发布：等所有平台构建完，下载全部产物，创建/更新唯一的 Release
+  publish:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
-      - name: Extract changelog for this version
-        run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"
-          node scripts/extract-changelog.js "$VERSION" > changelog-section.md
-          echo "--- extracted ---"
-          cat changelog-section.md
+      - name: List files
+        run: ls -la dist/
 
-      - name: Compose release notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # 查询本次 Release 的实际资产，生成真实文件名表格
-          ASSETS=$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
-          {
-            echo "> 多平台 AI 桌面应用（DeepSeek / ChatGPT / Claude）—— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
-            echo "";
-            echo "## ✨ 本次更新";
-            echo "";
-            sed 's/^### /#### /' changelog-section.md;
-            echo "";
-            echo "## 📥 下载安装";
-            echo "";
-            echo "| 平台 | 文件 | 说明 |";
-            echo "| --- | --- | --- |";
-            if [ -n "$ASSETS" ]; then
-              while IFS= read -r f; do
-                case "$f" in
-                  *-portable.exe) echo "| **Windows** | \`$f\` | 免安装便携版 |" ;;
-                  *.exe)          echo "| **Windows** | \`$f\` | 安装版（推荐），双击安装 |" ;;
-                  *.dmg)          echo "| **macOS** | \`$f\` | 拖入「应用程序」安装 |" ;;
-                  *.zip)          echo "| **macOS** | \`$f\` | 压缩包 |" ;;
-                  *.deb)          echo "| **Linux** | \`$f\` | Debian/Ubuntu 安装包 |" ;;
-                  *.rpm)          echo "| **Linux** | \`$f\` | Fedora/RHEL 安装包 |" ;;
-                  *.AppImage)     echo "| **Linux** | \`$f\` | 免安装可执行 |" ;;
-                  *.blockmap|*.yml) ;;
-                  *)              echo "| — | \`$f\` | — |" ;;
-                esac
-              done <<< "$ASSETS"
-            else
-              echo "| — | （本次无构建产物） | — |";
-            fi
-            echo "";
-            echo "## 🚀 主要功能";
-            echo "";
-            echo "- **多平台支持**：DeepSeek / ChatGPT / Claude，可导入自定义平台";
-            echo "- **标签页多账号**：单窗口多标签，每个平台/账号独立登录态，重启保持";
-            echo "- **AI 命令执行**：自动识别回复中的命令并执行，支持 bash / pwsh / 文件操作 / 代码运行";
-            echo "- **MCP 扩展**：支持 Model Context Protocol，接入外部工具";
-            echo "- **项目上下文**：绑定项目目录，AI 感知当前工程";
-            echo "- **本地 API**：OpenAI 兼容接口，可通过 API 操作标签页";
-            echo "";
-            echo "## ⚠️ 说明";
-            echo "";
-            echo "- 当前为 **Alpha 测试版**，功能可能不稳定，欢迎反馈问题";
-            echo "";
-            echo "---";
-            echo "";
-            echo "📦 完整更新日志见 [CHANGELOG.md](https://github.com/Qxyz17/Estrix-Code/blob/main/CHANGELOG.md)";
-          } > release-body.md
-          echo "--- composed ---"
-          cat release-body.md
-
-      - name: Update release notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --notes-file release-body.md
+      # 正式版（tag 不含 -beta）：创建正式 Release
+      - name: Publish Release
+        if: ${{ !contains(github.ref_name, '-beta') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          make_latest: false   # 不自动设为 Latest（由人工确认后手动切换）
+          generate_release_notes: true
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/*.zip
+            dist/*.dmg
+            dist/latest*.yml

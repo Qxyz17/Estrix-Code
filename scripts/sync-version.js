@@ -3,8 +3,11 @@
  * 同步到 package.json 和 package-lock.json。
  * 用法：node scripts/sync-version.js
  */
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const tag = process.env.GITHUB_REF_NAME || '';
 const version = tag.replace(/^v/, '').trim();

@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseWriteArgs, formatWriteOutput } = require('../../tools/WriteTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseWriteArgs, formatWriteOutput } from '../../src/tools/impl/write.js';
 
 test('parseWriteArgs 正常', () => {
   assert.deepStrictEqual(parseWriteArgs('a.txt', 'hello'), { filePath: 'a.txt', content: 'hello' });
@@ -9,8 +9,8 @@ test('parseWriteArgs 正常', () => {
 });
 
 test('parseWriteArgs 非法路径', () => {
-  assert.throws(() => parseWriteArgs('', 'x'), /file_path must be a non-empty string/);
-  assert.throws(() => parseWriteArgs('   ', 'x'), /file_path must be a non-empty string/);
+  assert.throws(() => parseWriteArgs('', 'x'), /filePath must be a non-empty string/);
+  assert.throws(() => parseWriteArgs('   ', 'x'), /filePath must be a non-empty string/);
 });
 
 test('parseWriteArgs content 非字符串', () => {
@@ -23,3 +23,4 @@ test('formatWriteOutput create/update', () => {
   assert.match(formatWriteOutput('a.txt', 'update'), /Updated file/);
   assert.match(formatWriteOutput('a.txt', 'create'), /<path>a.txt<\/path>/);
 });
+

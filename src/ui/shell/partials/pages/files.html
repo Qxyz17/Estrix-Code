@@ -1,0 +1,32 @@
+            <!-- ===== 项目文件 ===== -->
+            <div class="ck-tab" data-panel="files">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;" id="ft-root">项目文件</span>
+                <button class="ck-icon-btn" id="ft-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-ft-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+                <input class="ck-ft-search-input" id="ft-search" placeholder="搜索文件名…" spellcheck="false" autocomplete="off" />
+              </div>
+              <div class="ck-files-cols">
+                <div class="ck-list ck-ft" id="ft-list">
+                  <div class="ck-list-empty">加载中…</div>
+                </div>
+                <div class="ck-preview-pane" id="ck-preview-pane">
+                  <div class="ck-preview-head">
+                    <span class="ck-preview-name" id="ck-preview-name">文件预览</span>
+                    <span class="ck-preview-size" id="ck-preview-size"></span>
+                    <span class="ck-preview-acts">
+                      <span class="ck-preview-btn" id="ck-preview-ext" title="用系统程序打开">↗</span>
+                      <span class="ck-preview-btn" id="ck-preview-close" title="关闭预览">✕</span>
+                    </span>
+                  </div>
+                  <div class="ck-preview-body" id="ck-preview-body">
+                    <div class="ck-preview-empty" id="ck-preview-empty">点击左侧文件查看内容</div>
+                    <div class="ck-monaco" id="ck-monaco" style="display:none;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>

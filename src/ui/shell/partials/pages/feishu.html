@@ -1,0 +1,88 @@
+            <!-- ===== 飞书同步 ===== -->
+            <div class="ck-tab" data-panel="feishu">
+              <div class="ck-card">
+                <div class="ck-set-group-title">飞书同步</div>
+                <p class="ck-about-tip">还没配置过？<a href="#" id="fs-setup-link" style="color:var(--ck-primary);cursor:pointer;text-decoration:underline;">查看图文配置教程 →</a></p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">App ID</span>
+                  <input type="text" class="ck-set-input" id="fs-app-id" placeholder="cli_xxxxxx" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">App Secret</span>
+                  <input type="password" class="ck-set-input" id="fs-app-secret" placeholder="填写应用的 App Secret" />
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用飞书同步</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="fs-save">保存并连接</button>
+                  <button class="ck-btn ck-btn-secondary" id="fs-disconnect">断开</button>
+                </div>
+                <div class="fs-status">
+                  <span class="fs-dot" id="fs-dot"></span>
+                  <span class="ck-set-key" id="fs-status-text">未连接</span>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">本窗口绑定的飞书群</div>
+                <p class="ck-about-tip">把机器人拉进一个飞书群，这里选它。<strong>每个窗口绑定各自的群</strong>，对话互不干扰。</p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">飞书群</span>
+                  <select class="ck-set-input" id="fs-chat-select">
+                    <option value="">（未绑定 —— 该窗口飞书功能关闭）</option>
+                  </select>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-secondary" id="fs-refresh-chats">刷新群列表</button>
+                  <button class="ck-btn ck-btn-secondary" id="fs-unbind-chat">解绑</button>
+                </div>
+                <div class="fs-status">
+                  <span class="ck-set-key" id="fs-chat-status">未绑定</span>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">推送内容（Estrix → 飞书）</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">用户消息</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-user" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">AI 回复</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-ai" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">工具调用状态</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-tool" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">工具状态带工具名（默认关，隐私）</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-toolname" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="fs-save-push">保存推送设置</button>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">接收（飞书 → Estrix）</div>
+                <p class="ck-about-tip">在<strong>绑定的群</strong>里发消息（可 @ 或直接发），会送到<strong>本窗口</strong>发给 AI。<br>一个群只对应一个窗口；未绑定群的窗口不推也不收。</p>
+              </div>
+            </div>

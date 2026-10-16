@@ -1,7 +1,7 @@
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
-const { parseTodoList, formatTodoOutput, STATUSES } = require('../../tools/TodoWriteTool');
+import { test } from 'vitest';
+import assert from 'node:assert';
+import { parseTodoList, formatTodoOutput, STATUSES } from '../../src/tools/impl/todo-write.js';
 
 test('parseTodoList 正常列表', () => {
   const list = [
@@ -73,3 +73,4 @@ test('formatTodoOutput 统计', () => {
 test('STATUSES 包含正确状态', () => {
   assert.deepStrictEqual(STATUSES, ['pending', 'in_progress', 'completed']);
 });
+

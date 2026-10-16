@@ -1,0 +1,15 @@
+#!/bin/sh
+# 提交前自动刷新生成物
+# 由 package.json 的 prepare 脚本挂载（git config core.hooksPath .githooks）
+
+# 1) 需求目录有变化 → 重生成需求索引
+if git diff --cached --name-only | grep -q "^docs/requirements/"; then
+  npm run docs:index --silent
+  git add docs/requirements/INDEX.md
+fi
+
+# 2) 壳页面源码（src/ui/shell/）有变化 → 重建 shell.html（生成物）
+if git diff --cached --name-only | grep -q "^src/ui/shell/"; then
+  node scripts/build-shell.mjs
+  git add src/ui/shell.html
+fi

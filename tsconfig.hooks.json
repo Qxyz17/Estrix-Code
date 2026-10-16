@@ -1,0 +1,22 @@
+{
+  // hook 独立类型环境：hook 是注入浏览器主世界的自包含脚本（经 esbuild 打包为字符串）。
+  // 与主应用（Electron 模块、strict）性质不同——它是动态浏览器脚本，大量使用
+  // DOM/fetch/XHR 的无类型回调。因此：
+  //   1. 独立编译单元（不继承主应用 include/exclude 与 strict）
+  //   2. 保留基础检查（语法、明显类型错误），但不强制 strict（避免形式主义的 : any 填充）
+  // 若将来 hook 需要更严规则，在此文件单独加，不影响主应用。
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "lib": ["ES2022", "DOM"],
+    "strict": false,
+    "noImplicitAny": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/providers/hooks/**/*"],
+  "exclude": ["node_modules"]
+}
