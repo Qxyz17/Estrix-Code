@@ -60,7 +60,11 @@ async function download(url, dest) {
 function extract(archive, dest) {
   fs.mkdirSync(dest, { recursive: true });
   if (archive.endsWith('.zip')) {
-    execSync('powershell -NoProfile -Command "Expand-Archive -LiteralPath \'' + archive + '\' -DestinationPath \'' + dest + '\' -Force"', { stdio: 'inherit' });
+    if (process.platform === 'win32') {
+      execSync('powershell -NoProfile -Command "Expand-Archive -LiteralPath \'' + archive + '\' -DestinationPath \'' + dest + '\' -Force"', { stdio: 'inherit' });
+    } else {
+      execSync('unzip -o -q "' + archive + '" -d "' + dest + '"', { stdio: 'inherit' });
+    }
   } else if (archive.endsWith('.tar.gz')) {
     const forceLocal = process.platform === 'win32' ? '--force-local ' : '';
     execSync('tar ' + forceLocal + '-xzf "' + archive + '" -C "' + dest + '"', { stdio: 'inherit' });
@@ -122,7 +126,11 @@ async function main() {
 
   // ---- uv ----
   const uvAssetName = uvAsset(platform);
-  const uvUrl = 'https://6github.com/https://github.com/astral-sh/uv/releases/download/' + VERSIONS.uv + '/' + uvAssetName;
+  // CI（GitHub Actions）直连 github.com；本地走 6github 镜像（国内直连不通）
+  const uvBase = process.env.CI
+    ? 'https://github.com/astral-sh/uv/releases/download/'
+    : 'https://6github.com/https://github.com/astral-sh/uv/releases/download/';
+  const uvUrl = uvBase + VERSIONS.uv + '/' + uvAssetName;
   const uvArchive = path.join(TMP_DIR, uvAssetName);
   await download(uvUrl, uvArchive);
   const uvExtract = path.join(TMP_DIR, 'uv');
