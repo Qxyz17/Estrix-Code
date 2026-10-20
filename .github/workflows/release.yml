@@ -50,6 +50,9 @@ jobs:
       # 只构建，不发布（发布统一由下方 publish job 负责，避免多 job 各建一个 release）
       - name: Build
         run: npm run ${{ matrix.command }}
+        env:
+          # macOS 跳过代码签名（未配证书；electron-builder 26.13 的 osx-sign 动态导入有 bug）
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
