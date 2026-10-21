@@ -26,6 +26,7 @@ function currentPlatform() {
   if (p === 'win32' && a === 'x64') return 'win-x64';
   if (p === 'darwin' && a === 'x64') return 'mac-x64';
   if (p === 'darwin' && a === 'arm64') return 'mac-arm64';
+  if (p === 'linux' && a === 'x64') return 'linux-x64';
   throw new Error('不支持的平台: ' + p + '-' + a);
 }
 
@@ -34,6 +35,7 @@ function uvAsset(platform) {
     'win-x64': 'uv-x86_64-pc-windows-msvc.zip',
     'mac-x64': 'uv-x86_64-apple-darwin.tar.gz',
     'mac-arm64': 'uv-aarch64-apple-darwin.tar.gz',
+    'linux-x64': 'uv-x86_64-unknown-linux-gnu.tar.gz',
   };
   return map[platform];
 }
@@ -44,6 +46,7 @@ function nodeAsset(platform) {
     'win-x64': 'node-' + v + '-win-x64.zip',
     'mac-x64': 'node-' + v + '-darwin-x64.tar.gz',
     'mac-arm64': 'node-' + v + '-darwin-arm64.tar.gz',
+    'linux-x64': 'node-' + v + '-linux-x64.tar.gz',
   };
   return map[platform];
 }
