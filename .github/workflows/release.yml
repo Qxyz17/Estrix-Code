@@ -18,6 +18,8 @@ jobs:
             command: build:win:local
           - os: macos-latest
             command: build:mac:local
+          - os: ubuntu-latest
+            command: build:linux:local
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -33,6 +35,10 @@ jobs:
         run: node scripts/sync-version.js
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Install Linux packaging deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot libarchive-tools rpm
 
       - name: Install dependencies
         run: npm ci
@@ -68,6 +74,8 @@ jobs:
             dist/*.blockmap
             dist/*.zip
             dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
             dist/latest*.yml
           retention-days: 30
 
@@ -100,4 +108,82 @@ jobs:
             dist/*.blockmap
             dist/*.zip
             dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
             dist/latest*.yml
+
+
+  # 从 CHANGELOG 生成美观的 Release 说明（含真实产物文件名表格）
+  release-notes:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          node scripts/extract-changelog.js "$VERSION" > changelog-section.md
+          echo "--- extracted ---"
+          cat changelog-section.md
+
+      - name: Compose release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSETS=$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
+          {
+            echo "> 多平台 AI 桌面应用（DeepSeek / ChatGPT / Claude）—— 内嵌浏览器，自动识别 AI 回复中的命令和工具调用并执行";
+            echo "";
+            echo "## ✨ 本次更新";
+            echo "";
+            sed 's/^### /#### /' changelog-section.md;
+            echo "";
+            echo "## 📥 下载安装";
+            echo "";
+            echo "| 平台 | 文件 | 说明 |";
+            echo "| --- | --- | --- |";
+            if [ -n "$ASSETS" ]; then
+              while IFS= read -r f; do
+                case "$f" in
+                  *-portable.exe) echo "| **Windows** | \`$f\` | 免安装便携版 |" ;;
+                  *.exe)          echo "| **Windows** | \`$f\` | 安装版（推荐），双击安装 |" ;;
+                  *.dmg)          echo "| **macOS** | \`$f\` | 拖入「应用程序」安装 |" ;;
+                  *.zip)          echo "| **macOS** | \`$f\` | 压缩包 |" ;;
+                  *.deb)          echo "| **Linux** | \`$f\` | Debian/Ubuntu 安装包 |" ;;
+                  *.AppImage)     echo "| **Linux** | \`$f\` | 免安装可执行 |" ;;
+                  *.blockmap|*.yml) ;;
+                  *)              echo "| — | \`$f\` | — |" ;;
+                esac
+              done <<< "$ASSETS"
+            else
+              echo "| — | （本次无构建产物） | — |";
+            fi
+            echo "";
+            echo "## 🚀 主要功能";
+            echo "";
+            echo "- **多平台支持**：DeepSeek / ChatGPT / Claude，可导入自定义平台";
+            echo "- **标签页多账号**：单窗口多标签，每个平台/账号独立登录态，重启保持";
+            echo "- **AI 命令执行**：自动识别回复中的命令并执行，支持 bash / pwsh / 文件操作 / 代码运行";
+            echo "- **MCP 扩展**：支持 Model Context Protocol，接入外部工具";
+            echo "- **项目上下文**：绑定项目目录，AI 感知当前工程";
+            echo "- **本地 API**：OpenAI 兼容接口，可通过 API 操作标签页";
+            echo "";
+            echo "## ⚠️ 说明";
+            echo "";
+            echo "- 当前为 **Alpha 测试版**，功能可能不稳定，欢迎反馈问题";
+            echo "";
+            echo "---";
+            echo "";
+            echo "📦 完整更新日志见 [CHANGELOG.md](https://github.com/Qxyz17/Estrix-Code/blob/main/CHANGELOG.md)";
+          } > release-body.md
+          echo "--- composed ---"
+          cat release-body.md
+
+      - name: Update release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --notes-file release-body.md

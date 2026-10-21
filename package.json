@@ -30,7 +30,8 @@
     "build:win:nsis:local": "npm run compile && electron-builder --win --config.win.target=nsis --publish never",
     "build:win:portable:local": "npm run compile && electron-builder --win --config.win.target=portable --publish never",
     "build:mac:local": "npm run compile && electron-builder --mac --publish never",
-    "build:mac:dmg:local": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish never"
+    "build:mac:dmg:local": "npm run compile && electron-builder --mac --config.mac.target=dmg --publish never",
+    "build:linux:local": "npm run compile && electron-builder --linux --publish never"
   },
   "keywords": [
     "deepseek",
@@ -117,6 +118,15 @@
         }
       ],
       "artifactName": "estrix-code-mac-v${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "artifactName": "estrix-code-linux-v${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
