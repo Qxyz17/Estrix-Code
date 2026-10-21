@@ -1,13 +1,22 @@
       <div class="ck-tab" data-panel="localapi">
-        <div class="ck-page-head"><h3>本地 API</h3></div>
-        <div class="ck-page-body">
-          <p class="ck-about-tip">OpenAI 兼容接口，转发到当前窗口的 AI。支持真流式（SSE）。</p>
-          <div class="ck-set-row"><label>地址</label><code>http://127.0.0.1:11434/v1</code></div>
-          <div class="ck-set-row"><label>模型</label><code>/v1/models</code> 列出所有窗口</div>
-          <div class="ck-set-row"><label>API Key</label>
-            <input class="ck-input" id="localapi-key" type="text" placeholder="留空表示不校验" />
+        <div class="ck-card">
+          <div class="ck-set-group-title">本地 API</div>
+          <div class="ck-set-field">
+            <span class="ck-set-key">地址</span>
+            <code>http://127.0.0.1:11434/v1</code>
+          </div>
+          <div class="ck-set-field">
+            <span class="ck-set-key">模型</span>
+            <code>/v1/models</code>
+          </div>
+          <div class="ck-set-field">
+            <span class="ck-set-key">API Key</span>
+            <input class="ck-set-input" id="localapi-key" type="text" placeholder="留空表示不校验" />
             <button class="ck-btn-primary" id="localapi-save">保存</button>
           </div>
-          <div class="ck-set-row"><label>状态</label><span id="localapi-status">已启动</span></div>
+          <div class="ck-set-field">
+            <span class="ck-set-key">状态</span>
+            <span id="localapi-status">已启动</span>
+          </div>
         </div>
       </div>
