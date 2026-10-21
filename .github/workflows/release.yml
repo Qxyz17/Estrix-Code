@@ -47,6 +47,11 @@ jobs:
       - name: Fetch runtime binaries
         run: node scripts/fetch-runtime.mjs
 
+      # macOS：patch electron-builder 对 osx-sign 无扩展名子路径的导入（26.13 的 bug）
+      - name: Patch osx-sign import
+        if: runner.os == 'macOS'
+        run: node scripts/patch-osx-sign.cjs
+
       # 只构建，不发布（发布统一由下方 publish job 负责，避免多 job 各建一个 release）
       - name: Build
         run: npm run ${{ matrix.command }}
