@@ -41,8 +41,8 @@ function sleep(ms: number): Promise<void> {
  * @returns 已执行块的结果（取消时为已完成的那些块）
  */
 async function executeJsBlocksWithRetry(blocks: string[], shouldCancel?: () => boolean): Promise<any[]> {
-  // 工具开始（每个代码块一次）
-  for (const code of blocks) emitToolCall({ phase: 'start', code });
+  // 工具开始（每个非空代码块一次；空块不渲染卡片）
+  for (const code of blocks) if (code && code.trim()) emitToolCall({ phase: 'start', code });
   let results: any[] = [];
   for (let attempt = 0; attempt <= MAX_JS_RETRY; attempt++) {
     results = [];

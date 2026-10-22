@@ -1758,12 +1758,16 @@
 
   var PREFIX_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.8 4.6L14.5 8l-4.7 2.4L8 15l-1.8-4.6L1.5 8l4.7-2.4z"/></svg>';
 
+  var assistantBubbleCount = 0;
   function createAssistant() {
     clearEmpty();
     var d = document.createElement('div');
     d.className = 'msg assistant';
+    // 整段对话只保留第一个 ⭐Estrix 前缀，后续 AI 回复不加
+    var prefixHtml = assistantBubbleCount === 0 ? '<div class="prefix">' + PREFIX_SVG + 'Estrix</div>' : '';
+    assistantBubbleCount++;
     d.innerHTML =
-      '<div class="prefix">' + PREFIX_SVG + 'Estrix</div>' +
+      prefixHtml +
       '<div class="think" style="display:none">' +
         '<div class="think-head"><svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><span class="think-label">思考中…</span></div>' +
         '<div class="think-body"></div>' +
@@ -1834,7 +1838,9 @@
     clearEmpty();
     var d = document.createElement('div');
     d.className = 'msg assistant';
-    d.innerHTML = '<div class="prefix">' + PREFIX_SVG + 'Estrix</div><div class="body">' + renderMarkdown(t) + '</div>';
+    var prefixHtml2 = assistantBubbleCount === 0 ? '<div class="prefix">' + PREFIX_SVG + 'Estrix</div>' : '';
+    assistantBubbleCount++;
+    d.innerHTML = prefixHtml2 + '<div class="body">' + renderMarkdown(t) + '</div>';
     attachCopy(d, function () { return t; });
     stream.appendChild(d);
     scrollBottom();
@@ -1860,6 +1866,7 @@
   }
 
   function addToolStart(code) {
+    if (!code || !String(code).trim()) return '';
     clearEmpty();
     var id = 'tool-' + (++toolSeq);
     var tc = parseToolCall(code);
