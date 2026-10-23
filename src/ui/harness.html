@@ -2350,6 +2350,10 @@
       setSecLevel(next);
     });
     updateSecBtn();
+    // 页面加载：把 localStorage 的级别同步给主进程（否则刷新/重启后主进程拿不到，退回默认）
+    if (window.harnessAPI && window.harnessAPI.setSecurityLevel) {
+      try { window.harnessAPI.setSecurityLevel(getSecLevel()); } catch (e) { /* ignore */ }
+    }
   }
 
   attachBtn.addEventListener('click', function () {

@@ -52,6 +52,16 @@ function splitShellSegments(cmd: string): string[] {
     .filter((s) => s.length > 0);
 }
 
+/** 读当前安全级别（主进程 harness 设置；bypass = 跳过危险命令检查） */
+function getSecurityLevel(): string {
+  try {
+    const lv = (globalThis as any).__estrixSecurityLevel;
+    return (lv === 'strict' || lv === 'default' || lv === 'bypass') ? lv : 'default';
+  } catch (_) {
+    return 'default';
+  }
+}
+
 /**
  * 判断命令（或其任一分段）是否为危险命令。
  * @param cmd 原始命令（可为复合命令）
@@ -59,6 +69,8 @@ function splitShellSegments(cmd: string): string[] {
  */
 function isDangerous(cmd: string): boolean {
   if (!cmd || typeof cmd !== 'string') return false;
+  // bypass：跳过危险命令检查（完全放行）
+  if (getSecurityLevel() === 'bypass') return false;
   const segments = splitShellSegments(cmd);
   for (const seg of segments) {
     if (DANGEROUS_CMDS.some((pattern) => pattern.test(seg))) return true;
